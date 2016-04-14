@@ -1,0 +1,16 @@
+*.hi
+*.o
+Main
+cabal-dev
+dist
+deps/
+*.a
+obj/
+gen/
+bin/
+tmp/
+*.so
+*.a
+*.o
+.cabal-sandbox
+cabal.sandbox.config
