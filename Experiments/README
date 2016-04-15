@@ -4,5 +4,5 @@ List of features the game needs, one experiment for each:
 - DONE FRP: Arrow growing up to the ceiling, dying when it touches the ceiling.
 - DONE FRP: Arrow growing up to the ceiling, dying X secs after touching the ceiling.
 - DONE FRP: Balls bouncing.
-- FRP, Input: Balls bouncing, splitting in two on click.
+- DONE FRP, Input: Balls bouncing, splitting in two on click.
 - FRP, Collisions: Balls bouncing, splitting in two on collision with some arrows.
