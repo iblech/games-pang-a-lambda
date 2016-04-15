@@ -36,6 +36,7 @@ module Game (wholeGame) where
 
 -- External imports
 import FRP.Yampa
+import FRP.Yampa.Switches
 
 -- General-purpose internal imports
 import Data.Extra.VectorSpace
@@ -44,6 +45,7 @@ import Physics.TwoDimensions.Collisions
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.GameCollisions
 import Physics.TwoDimensions.Shapes
+import Physics.TwoDimensions.PhysicalObjects
 
 -- Internal iports
 import Constants
@@ -75,7 +77,7 @@ wholeGame = gamePlay initialObjects >>> composeGameState
 -- The internal accumulator holds the last known collisions (discarded at every
 -- iteration).
 
-gamePlay :: ObjectSFs -> SF Controller (Objects, Time)
+gamePlay :: [ListSF ObjectInput Object] -> SF Controller (Objects, Time)
 gamePlay objs = loopPre [] $
    -- Process physical movement and detect new collisions
    proc (i) -> do
@@ -84,33 +86,34 @@ gamePlay objs = loopPre [] $
 
       -- Step
       -- Each obj processes its movement forward
-      ol  <- ilSeq ^<< parB objs -< oi
+      -- ol  <- ilSeq ^<< parB objs -< oi
+      ol  <- dlSwitch objs -< oi
       let cs' = detectCollisions ol
 
       -- Output
-      elems <- arr elemsIL -< ol
+      -- elems <- arr elemsIL -< ol
       tLeft <- time        -< ()
-      returnA -< ((elems, tLeft), cs')
+      returnA -< ((ol, tLeft), cs')
 
 -- * Game objects
 --
 -- | Objects initially present: the walls, the ball, the paddle and the blocks.
-initialObjects :: ObjectSFs
-initialObjects = listToIL $
-    [ objSideRight
-    , objSideTop
-    , objSideLeft
-    , objSideBottom
+initialObjects :: [ListSF ObjectInput Object]
+initialObjects =
+    [ inertSF objSideRight
+    , inertSF objSideTop
+    , inertSF objSideLeft
+    , inertSF objSideBottom
     ]
     ++ objEnemies
 
 -- *** Enemy
-objEnemies :: [ObjectSF]
+objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
-  [ bouncingBall "enemy1" (300, 300) (360, -350)
-  , bouncingBall "enemy2" (500, 300) (-330, -280)
-  , bouncingBall "enemy3" (200, 100) (-300, -250)
-  , bouncingBall "enemy4" (100, 200) (-200, -150)
+  [ splittingBall "enemy1" (300, 300) (360, -350)
+  , splittingBall "enemy2" (500, 300) (-330, -280)
+  , splittingBall "enemy3" (200, 100) (-300, -250)
+  , splittingBall "enemy4" (100, 200) (-200, -150)
   ]
 -- objEnemies _ =
 --   [ bouncingBall "enemy1" (300, 300) (360,  -350)
@@ -120,6 +123,15 @@ objEnemies =
 --   , bouncingBall "enemy5" (200, 200) (-300, -150)
 --   , bouncingBall "enemy6" (400, 400) (200,   200)
 --   ]
+
+splittingBall :: String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
+splittingBall bid p0 v0 = ListSF $ proc i -> do
+  bo        <- bouncingBall bid p0 v0 -< i
+  click     <- edge -< controllerClick (userInput i)
+  let bpos  = physObjectPos bo
+      offspring = [ splittingBall (bid ++ "0") bpos (0,0)
+                  | isEvent click ]
+  returnA -< (bo, False, offspring)
 
 -- *** Ball
 
@@ -255,3 +267,6 @@ objWall name side pos = proc (ObjectInput ci cs) -> do
 -- * Auxiliary FRP stuff
 maybeToEvent :: Maybe a -> Event a
 maybeToEvent = maybe noEvent Event
+
+inertSF :: SF a b -> ListSF a b
+inertSF sf = ListSF (sf >>> arr (\o -> (o, False, [])))
