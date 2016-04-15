@@ -1,8 +1,10 @@
 {-# LANGUAGE Arrows #-}
-import Graphics.UI.SDL as SDL
-import FRP.Yampa       as Yampa
 import Data.IORef
+import Data.List
 import Debug.Trace
+import FRP.Yampa       as Yampa
+import FRP.Yampa.Switches as Yampa
+import Graphics.UI.SDL as SDL
 
 width  = 640
 height = 480
@@ -14,7 +16,7 @@ main = do
                 dtSecs <- yampaSDLTimeSense timeRef
                 return (dtSecs, Nothing))
              (\_ e -> display e >> return False)
-             (inCirclesL' initialList)
+             (inCirclesL initialList)
 
 -- | Updates the time in an IO Ref and returns the time difference
 updateTime :: IORef Int -> Int -> IO Int
@@ -65,32 +67,16 @@ display xs = do
 
   SDL.delay 10
 
-inCirclesL' ips = inCirclesL ips >>> arr (map fst)
+inCirclesL ips = dlSwitch ips
 
-inCirclesL :: [SF () ((Double, Double), Bool)]
-           -> SF () [((Double, Double), Bool)]
-inCirclesL ips = dpSwitchB ips evProd addToList
+spike :: Int -> SF () (Yampa.Event ())
+spike m = loopPre 0 (arr $ \((), n) -> if n == m
+                                        then (True, 0)
+                                        else (False,  n+1)) >>> edge
 
- where
-     evProd :: SF ((), [((Double, Double), Bool)]) (Yampa.Event [(Double, Double)])
-     evProd = noEvent --> arr (snd >>> splitBalls)
 
-initialList = [ inCircles (320, 240) ]
-
-addToList :: [SF () ((Double, Double), Bool)]
-          -> [(Double, Double)]
-          -> SF () [((Double, Double), Bool)]
-addToList sfs ips = trace ("Adding new circles: " ++ show ips)
-                  $ inCirclesL (sfs ++ map inCircles ips)
-
-splitBalls :: [((Double, Double), Bool)] -> Yampa.Event [(Double, Double)]
-splitBalls ps
-  | null ls   = noEvent
-  | otherwise = Yampa.Event ls
- where ls = [ (y-20, x+20) | ((x,y),True) <- ps ]
-
-inCircles :: (Double, Double) -> SF () ((Double, Double), Bool)
-inCircles (baseX, baseY) = proc () -> do
+inCircles :: (Double, Double) -> ListSF () (Double, Double)
+inCircles (baseX, baseY) = ListSF $ proc () -> do
    t <- localTime -< ()
    let radius = 30
        x = baseX + (cos t * radius)
@@ -104,9 +90,53 @@ inCircles (baseX, baseY) = proc () -> do
                          )
                          ()
 
-   returnA -< ((x,y), isEvent split)
+   let nsf = if isEvent split
+                 then [inCircles (y*2, x/2)]
+                 else []
 
-spike :: Int -> SF () (Yampa.Event ())
-spike m = loopPre 0 (arr $ \((), n) -> if n == m
-                                        then (True, 0)
-                                        else (False,  n+1)) >>> edge
+   returnA -< ((x,y), False, nsf)
+
+initialList = [ inCircles (320, 240) ]
+
+-- Version of list splitting that works in traditional Yampa
+-- inCirclesL' ips = inCirclesL ips >>> arr (map fst)
+--
+-- inCirclesL :: [SF () ((Double, Double), Bool)]
+--            -> SF () [((Double, Double), Bool)]
+-- inCirclesL ips = dpSwitchB ips evProd addToList
+--
+--  where
+--      evProd :: SF ((), [((Double, Double), Bool)]) (Yampa.Event [(Double, Double)])
+--      evProd = noEvent --> arr (snd >>> splitBalls)
+--
+-- initialList = [ inCircles (320, 240) ]
+-- initialList' = [ inCircles' (320, 240) ]
+--
+-- addToList :: [SF () ((Double, Double), Bool)]
+--           -> [(Double, Double)]
+--           -> SF () [((Double, Double), Bool)]
+-- addToList sfs ips = trace ("Adding new circles: " ++ show ips)
+--                   $ inCirclesL (sfs ++ map inCircles ips)
+--
+-- splitBalls :: [((Double, Double), Bool)] -> Yampa.Event [(Double, Double)]
+-- splitBalls ps
+--   | null ls   = noEvent
+--   | otherwise = Yampa.Event ls
+--  where ls = [ (y-20, x+20) | ((x,y),True) <- ps ]
+--
+-- inCircles :: (Double, Double) -> SF () ((Double, Double), Bool)
+-- inCircles (baseX, baseY) = proc () -> do
+--    t <- localTime -< ()
+--    let radius = 30
+--        x = baseX + (cos t * radius)
+--        y = baseY + (sin t * radius)
+--
+--    split <- noEvent --> spike 100 -< ()
+--
+--    () <- arr id -< trace ( "Time : " ++ show t
+--                          ++ " mod: " ++ show (round t `mod` 10)
+--                          ++ " s: "   ++ show split
+--                          )
+--                          ()
+--
+--    returnA -< ((x,y), isEvent split)
