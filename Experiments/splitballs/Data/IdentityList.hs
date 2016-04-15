@@ -1,4 +1,4 @@
-{- 
+{-
 ******************************************************************************
 *                              I N V A D E R S                               *
 *                                                                            *
@@ -37,6 +37,7 @@ module Data.IdentityList (
 ) where
 
 import Data.List (find)
+import Data.Foldable
 
 
 ------------------------------------------------------------------------------
@@ -52,6 +53,8 @@ type ILKey = Int
 data IL a = IL { ilNextKey :: ILKey, ilAssocs :: [(ILKey, a)] }
 
 
+instance Foldable IL where
+  foldMap f = foldMap f . map snd . ilAssocs
 ------------------------------------------------------------------------------
 -- Class instances
 ------------------------------------------------------------------------------
@@ -117,7 +120,7 @@ updateIL k v l = updateILWith k (const v) l
 
 updateILWith :: ILKey -> (a -> a) -> IL a -> IL a
 updateILWith k f l = mapIL g l
- where g (k',v') | k == k'   = f v' 
+ where g (k',v') | k == k'   = f v'
                  | otherwise = v'
 
 ------------------------------------------------------------------------------
