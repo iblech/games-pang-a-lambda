@@ -16,7 +16,7 @@ main = do
                 dtSecs <- yampaSDLTimeSense timeRef
                 return (dtSecs, Nothing))
              (\_ e -> display e >> return False)
-             (inCirclesL initialList)
+             mainSF
 
 -- | Updates the time in an IO Ref and returns the time difference
 updateTime :: IORef Int -> Int -> IO Int
@@ -67,14 +67,15 @@ display xs = do
 
   SDL.delay 10
 
-inCirclesL ips = dlSwitch ips
+-- | Main animation
+mainSF :: SF () [(Double, Double)]
+mainSF = dlSwitch initialList
 
-spike :: Int -> SF () (Yampa.Event ())
-spike m = loopPre 0 (arr $ \((), n) -> if n == m
-                                        then (True, 0)
-                                        else (False,  n+1)) >>> edge
+-- | A list of position-producing forking-dying SFs
+initialList :: [ListSF () (Double, Double)]
+initialList = [ inCircles (320, 240) ]
 
-
+-- | Describe a movement in circles, forking every few samples.
 inCircles :: (Double, Double) -> ListSF () (Double, Double)
 inCircles (baseX, baseY) = ListSF $ proc () -> do
    t <- localTime -< ()
@@ -82,21 +83,34 @@ inCircles (baseX, baseY) = ListSF $ proc () -> do
        x = baseX + (cos t * radius)
        y = baseY + (sin t * radius)
 
-   split <- noEvent --> spike 100 -< ()
+   -- OffSpring
+   split <- isEvent ^<< spike 300 -< ()
+   let offspring = if split
+                     then [inCircles (y*2, x/2), inCircles (x/2, y*2)]
+                     else []
 
-   () <- arr id -< trace ( "Time : " ++ show t
-                         ++ " mod: " ++ show (round t `mod` 10)
-                         ++ " s: "   ++ show split
-                         )
-                         ()
+   -- Time to die?
+   die   <- isEvent ^<< spike 350 -< ()
 
-   let nsf = if isEvent split
-                 then [inCircles (y*2, x/2)]
-                 else []
+   returnA -< ((x,y), die, offspring)
 
-   returnA -< ((x,y), False, nsf)
+   -- () <- arr id -< trace ( "Time : " ++ show t
+   --                       ++ " mod: " ++ show (round t `mod` 10)
+   --                       ++ " s: "   ++ show split
+   --                       )
+   --                       ()
 
-initialList = [ inCircles (320, 240) ]
+-- | Produce a spike every few samples.
+spike :: Int -> SF () (Yampa.Event ())
+spike m = spikeBool m >>> edge
+ where spikeBool m = resetCounter m >>> arr (== 0)
+
+-- | Create a decreasing counter that is reset to the starting value when it
+-- reaches 0.
+resetCounter :: Int -> SF () Int
+resetCounter m = loopPre m $ arr (snd >>> decR m >>> dup)
+ where decR m n = if n == 0 then m else (n-1)
+       dup  x   = (x,x)
 
 -- Version of list splitting that works in traditional Yampa
 -- inCirclesL' ips = inCirclesL ips >>> arr (map fst)
