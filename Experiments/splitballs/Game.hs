@@ -205,43 +205,47 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
 freeBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
 freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
 
-  -- Cap speed
-  -- let v = limitNorm v0 maxVNorm
-  initV <- startAs v0 -< ci
+  -- Integrate acceleration, add initial velocity and cap speed. Resets both
+  -- the initial velocity and the current velocity to (0,0) when the user
+  -- presses the Halt key (hence the dependency on the controller input ci).
 
-  curV <- vdiffSF -< (initV, (0, -100.8), ci)
-
-  -- vdiff <- integral -< (0, -100.8)
-  -- let v' = v0 ^+^ vdiff
-  --     v = limitNorm v' maxVNorm
-  --     curV = if controllerStop ci then (0,0) else v
+  vInit <- startAs v0 -< ci
+  vel   <- vdiffSF    -< (vInit, (0, -100.8), ci)
 
   -- Any free moving object behaves like this (but with
   -- acceleration. This should be in some FRP.NewtonianPhysics
   -- module)
-  p <- (p0 ^+^) ^<< integral -< curV
+  pos <- (p0 ^+^) ^<< integral -< vel
 
   let obj = Object { objectName           = name
                    , objectKind           = Ball size
-                   , objectPos            = p
-                   , objectVel            = curV
+                   , objectPos            = pos
+                   , objectVel            = vel
                    , canCauseCollisions   = True
                    , collisionEnergy      = 1
                    }
 
   returnA -< obj
- where adjustV vd  = limitNorm (v0 ^+^ vd) maxVNorm
-       restartCond = noEvent --> (arr snd >>> arr controllerStop >>> edge)
-       vdiffSF     = proc (iv, acc, ci) -> do
-                       vd <- restartOn (arr fst >>> integral) restartCond  -< (acc, ci)
-                       v <- arr (uncurry (^+^)) -< (iv, vd)
-                       returnA -< limitNorm v maxVNorm
-       startAs v0  = switch (constant v0 &&& (noEvent --> (arr controllerStop >>> edge)))
-                            (\_ -> startAs (0,0))
+ where -- Spike every time the user presses the Halt key
+       restartCond = spikeOn (arr controllerStop)
 
-restartOn :: SF a b -> SF a (Event c) -> SF a b
-restartOn sf sfc = switch (sf &&& sfc)
-                          (\_ -> restartOn sf sfc)
+       -- Calculate the velocity, restarting when the user
+       -- requests it.
+       vdiffSF = proc (iv, acc, ci) -> do
+                   -- Calculate velocity difference by integrating acceleration
+                   -- Reset calculation when user requests to stop balls
+                   vd <- restartOn (arr fst >>> integral)
+                                   (arr snd >>> restartCond) -< (acc, ci)
+
+                   -- Add initial velocity, and cap the result
+                   v <- arr (uncurry (^+^)) -< (iv, vd)
+                   let vFinal = limitNorm v maxVNorm
+
+                   returnA -< vFinal
+
+       -- Initial velocity, reset when the user requests it.
+       startAs v0  = switch (constant v0 &&& restartCond)
+                            (\_ -> startAs (0,0))
 
 -- *** Walls
 
@@ -288,3 +292,10 @@ maybeToEvent = maybe noEvent Event
 
 inertSF :: SF a b -> ListSF a b
 inertSF sf = ListSF (sf >>> arr (\o -> (o, False, [])))
+
+restartOn :: SF a b -> SF a (Event c) -> SF a b
+restartOn sf sfc = switch (sf &&& sfc)
+                          (\_ -> restartOn sf sfc)
+
+spikeOn :: SF a Bool -> SF a (Event ())
+spikeOn sf = noEvent --> (sf >>> edge)
