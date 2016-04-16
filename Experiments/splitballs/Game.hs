@@ -40,7 +40,6 @@ import FRP.Yampa.Switches
 
 -- General-purpose internal imports
 import Data.Extra.VectorSpace
-import Data.IdentityList
 import Physics.TwoDimensions.Collisions
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.GameCollisions
@@ -86,12 +85,10 @@ gamePlay objs = loopPre [] $
 
       -- Step
       -- Each obj processes its movement forward
-      -- ol  <- ilSeq ^<< parB objs -< oi
       ol  <- dlSwitch objs -< oi
       let cs' = detectCollisions ol
 
       -- Output
-      -- elems <- arr elemsIL -< ol
       tLeft <- time        -< ()
       returnA -< ((ol, tLeft), cs')
 
@@ -115,14 +112,6 @@ objEnemies =
   , splittingBall "enemy3" (200, 100) (-300, -250)
   , splittingBall "enemy4" (100, 200) (-200, -150)
   ]
--- objEnemies _ =
---   [ bouncingBall "enemy1" (300, 300) (360,  -350)
---   , bouncingBall "enemy2" (500, 300) (-300, -250)
---   , bouncingBall "enemy3" (200, 100) (-300, -250)
---   , bouncingBall "enemy4" (100, 200) (-200, -150)
---   , bouncingBall "enemy5" (200, 200) (-300, -150)
---   , bouncingBall "enemy6" (400, 400) (200,   200)
---   ]
 
 splittingBall :: String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall bid p0 v0 = ListSF $ proc i -> do

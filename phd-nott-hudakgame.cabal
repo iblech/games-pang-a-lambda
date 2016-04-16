@@ -142,7 +142,6 @@ executable phd-nott-hudakgame-splitballs
                    Control.Extra.Monad
                    Data.Extra.Num
                    Data.Extra.VectorSpace
-                   Data.IdentityList
                    Graphics.UI.Extra.SDL
                    Physics.TwoDimensions.Collisions
                    Physics.TwoDimensions.Dimensions

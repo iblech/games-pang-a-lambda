@@ -10,7 +10,6 @@ import FRP.Yampa
 
 import Objects
 import Input
-import Data.IdentityList
 
 -- | Objects are defined as transformations that take 'ObjectInput' signals and
 -- return 'ObjectOutput' signals.
@@ -31,15 +30,15 @@ data ObjectInput = ObjectInput
 -- -- snapshot of the object.
 -- data ObjectOutput = ObjectOutput
 --   { outputObject :: Object   -- ^ The object's state (position, shape, etc.).
---   } 
+--   }
 
--- | List of identifiable objects. Used to work with dynamic object
--- collections.
-type ObjectSFs = IL ObjectSF
+-- -- | List of identifiable objects. Used to work with dynamic object
+-- -- collections.
+-- type ObjectSFs = IL ObjectSF
 
 -- extractObjects :: Functor f => SF (f ObjectOutput) (f Object)
 -- extractObjects = arr (fmap outputObject)
--- 
+--
 -- -- | A list of object outputs
 -- type ObjectOutputs = [ObjectOutput]
--- 
+--
