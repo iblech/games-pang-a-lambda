@@ -123,7 +123,9 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
 
   let offspringSize = (5 * size / 6) -- Or: size
 
-  let offspring = [ splittingBall offspringSize (bid ++ show t) bpos (0,0)
+  let offspringID = (bid ++ show t) -- Should be unique or collisions won't work
+
+      offspring = [ splittingBall offspringSize offspringID bpos (0,0)
                   | shouldSplit && not tooSmall
                   , let bpos = physObjectPos bo
                   ]
