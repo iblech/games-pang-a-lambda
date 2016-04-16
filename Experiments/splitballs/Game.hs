@@ -107,21 +107,30 @@ initialObjects =
 -- *** Enemy
 objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
-  [ splittingBall "enemy1" (300, 300) (360, -350)
-  , splittingBall "enemy2" (500, 300) (-330, -280)
-  , splittingBall "enemy3" (200, 100) (-300, -250)
-  , splittingBall "enemy4" (100, 200) (-200, -150)
+  [ splittingBall ballWidth "enemy1" (300, 300) (360, -350)
+  , splittingBall ballWidth "enemy2" (500, 300) (-330, -280)
+  , splittingBall ballWidth "enemy3" (200, 100) (-300, -250)
+  , splittingBall ballWidth "enemy4" (100, 200) (-200, -150)
   ]
 
-splittingBall :: String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
-splittingBall bid p0 v0 = ListSF $ proc i -> do
-  t         <- localTime              -< ()
-  bo        <- bouncingBall bid p0 v0 -< i
+splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
+splittingBall size bid p0 v0 = ListSF $ proc i -> do
+  t         <- localTime                    -< ()
+  bo        <- bouncingBall size bid p0 v0 -< i
   click     <- edge -< controllerClick (userInput i)
-  let bpos  = physObjectPos bo
-      offspring = [ splittingBall (bid ++ show t) bpos (0,0)
-                  | isEvent click ]
-  returnA -< (bo, False, offspring)
+  let tooSmall    = size <= (ballWidth / 2)
+      shouldSplit = isEvent click
+
+  let offspringSize = (5 * size / 6) -- Or: size
+
+  let offspring = [ splittingBall offspringSize (bid ++ show t) bpos (0,0)
+                  | shouldSplit && not tooSmall
+                  , let bpos = physObjectPos bo
+                  ]
+
+      dead = shouldSplit && tooSmall
+
+  returnA -< (bo, dead, offspring)
 
 -- *** Ball
 
@@ -132,11 +141,11 @@ splittingBall bid p0 v0 = ListSF $ proc i -> do
 -- there is a bounce, it takes a snapshot of the point of
 -- collision and corrected velocity, and starts again.
 --
-bouncingBall :: String -> Pos2D -> Vel2D -> ObjectSF
-bouncingBall bid p0 v0 =
+bouncingBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
+bouncingBall size bid p0 v0 =
   switch progressAndBounce
-         (uncurry (bouncingBall bid)) -- Somehow it would be clearer like this:
-                                      -- \(p', v') -> bouncingBall p' v')
+         (uncurry (bouncingBall size bid)) -- Somehow it would be clearer like this:
+                                           -- \(p', v') -> bouncingBall p' v')
  where
 
        -- Calculate the future tentative position, and
@@ -158,7 +167,7 @@ bouncingBall bid p0 v0 =
        -- Position of the ball, starting from p0 with velicity v0, since the
        -- time of last switching (or being fired, whatever happened last)
        -- provided that no obstacles are encountered.
-       freeBall' = freeBall bid p0 v0
+       freeBall' = freeBall size bid p0 v0
 
 -- | Detect if the ball must bounce and, if so, take a snapshot of the object's
 -- current position and velocity.
@@ -191,8 +200,8 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
 -- last switching (that is, collision, or the beginning of time --being fired
 -- from the paddle-- if never switched before), provided that no obstacles are
 -- encountered.
-freeBall :: String -> Pos2D -> Vel2D -> ObjectSF
-freeBall name p0 v0 = proc (ObjectInput ci cs) -> do
+freeBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
+freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
 
   -- Cap speed
   -- let v = limitNorm v0 maxVNorm
@@ -206,7 +215,7 @@ freeBall name p0 v0 = proc (ObjectInput ci cs) -> do
   p <- (p0 ^+^) ^<< integral -< v
 
   let obj = Object { objectName           = name
-                   , objectKind           = Ball ballWidth
+                   , objectKind           = Ball size
                    , objectPos            = p
                    , objectVel            = v
                    , canCauseCollisions   = True

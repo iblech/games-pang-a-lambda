@@ -65,9 +65,9 @@ render resources shownState = do
   bgColor <- mapRGB format 0x37 0x16 0xB4
   fillRect screen Nothing bgColor
 
-  displayInfo screen resources (gameInfo shownState)
-
   mapM_ (paintObject screen resources ) $ gameObjects shownState
+
+  displayInfo screen resources (gameInfo shownState)
 
   -- Double buffering
   SDL.flip screen
@@ -82,12 +82,12 @@ paintObject :: Surface -> Resources -> Object -> IO ()
 paintObject screen resources object =
   case objectKind object of
     (Side {}) -> return ()
-    _         -> do
+    (Ball ballSize) -> do
       let (px,py)  = (\(u,v) -> (u, gameHeight - v)) (objectPos object)
       let (x,y)    = (round *** round) (px,py)
           (vx,vy)  = objectVel object
           (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
-      _ <- SDLP.filledCircle screen x y ballSize (SDL.Pixel ballColor)
+      _ <- SDLP.filledCircle screen x y (round ballSize) (SDL.Pixel ballColor)
       _ <- SDLP.line screen x y x' y' (SDL.Pixel velColor)
 
       -- Print position
