@@ -205,24 +205,41 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
 
   -- Cap speed
   -- let v = limitNorm v0 maxVNorm
-  vdiff <- integral -< (0, -100.8)
-  let v' = v0 ^+^ vdiff
-      v = limitNorm v' maxVNorm
+  initV <- startAs v0 -< ci
+
+  curV <- vdiffSF -< (initV, (0, -100.8), ci)
+
+  -- vdiff <- integral -< (0, -100.8)
+  -- let v' = v0 ^+^ vdiff
+  --     v = limitNorm v' maxVNorm
+  --     curV = if controllerStop ci then (0,0) else v
 
   -- Any free moving object behaves like this (but with
   -- acceleration. This should be in some FRP.NewtonianPhysics
   -- module)
-  p <- (p0 ^+^) ^<< integral -< v
+  p <- (p0 ^+^) ^<< integral -< curV
 
   let obj = Object { objectName           = name
                    , objectKind           = Ball size
                    , objectPos            = p
-                   , objectVel            = v
+                   , objectVel            = curV
                    , canCauseCollisions   = True
                    , collisionEnergy      = 1
                    }
 
   returnA -< obj
+ where adjustV vd  = limitNorm (v0 ^+^ vd) maxVNorm
+       restartCond = noEvent --> (arr snd >>> arr controllerStop >>> edge)
+       vdiffSF     = proc (iv, acc, ci) -> do
+                       vd <- restartOn (arr fst >>> integral) restartCond  -< (acc, ci)
+                       v <- arr (uncurry (^+^)) -< (iv, vd)
+                       returnA -< limitNorm v maxVNorm
+       startAs v0  = switch (constant v0 &&& (noEvent --> (arr controllerStop >>> edge)))
+                            (\_ -> startAs (0,0))
+
+restartOn :: SF a b -> SF a (Event c) -> SF a b
+restartOn sf sfc = switch (sf &&& sfc)
+                          (\_ -> restartOn sf sfc)
 
 -- *** Walls
 

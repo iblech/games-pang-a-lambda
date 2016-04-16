@@ -26,6 +26,7 @@ import Graphics.UI.Extra.SDL
 data Controller = Controller
   { controllerPos        :: (Double, Double)
   , controllerClick      :: Bool
+  , controllerStop       :: Bool
   , controllerPause      :: Bool
   , controllerExit       :: Bool
   , controllerFast       :: Bool
@@ -50,12 +51,12 @@ initializeInputDevices :: IO ControllerRef
 initializeInputDevices = do
   nr <- newIORef defaultInfo
   return $ ControllerRef (nr, sdlGetController)
- where defaultInfo = Controller (0,0) False False False False False False False
+ where defaultInfo = Controller (0,0) False False False False False False False False
 
 -- | Sense from the controller, providing its current
 -- state. This should return a new Controller state
 -- if available, or the last one there was.
--- 
+--
 -- It is assumed that the sensing function is always
 -- callable, and that it knows how to update the
 -- Controller info if necessary.
@@ -94,6 +95,8 @@ handleEvent c e =
     KeyUp   (Keysym { symKey = SDLK_s })     -> c { controllerSlow       = False }
     KeyDown (Keysym { symKey = SDLK_x })     -> c { controllerFast       = True  }
     KeyUp   (Keysym { symKey = SDLK_x })     -> c { controllerFast       = False }
+    KeyDown (Keysym { symKey = SDLK_h })     -> c { controllerStop       = True  }
+    KeyUp   (Keysym { symKey = SDLK_h })     -> c { controllerStop       = False }
     KeyDown (Keysym { symKey = SDLK_SPACE }) -> c { controllerClick      = True  }
     KeyUp (Keysym { symKey = SDLK_SPACE })   -> c { controllerClick      = False }
     KeyDown (Keysym { symKey = SDLK_ESCAPE}) -> c { controllerExit       = True  }
