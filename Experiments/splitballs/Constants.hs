@@ -5,9 +5,9 @@ import Data.Word
 import Graphics.UI.SDL as SDL
 
 width :: Double
-width  = 640
+width  = 1024
 height :: Double
-height = 480
+height = 600
 
 gameWidth :: Double
 gameWidth = width
@@ -22,17 +22,16 @@ velTrans = 1.00
 -- Max speed
 maxVNorm :: Double
 maxVNorm = 500
-      
--- Delays
+
 ballWidth, ballHeight :: Double
-ballWidth  = 30
-ballHeight = 30
+ballWidth  = 25
+ballHeight = 25
 
 ballMargin :: Double
 ballMargin = 3
 
 ballSize :: Int16
-ballSize = 30
+ballSize = 25
 
 -- Colors
 fontColor :: SDL.Color

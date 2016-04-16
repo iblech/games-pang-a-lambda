@@ -37,7 +37,7 @@ detectCollisions = detectCollisionsH
                collisions = detectCollisions' objsT moving
 
                -- Partition the object space between moving and static objects
-               (moving, _static) = partition (physObjectCollides) $ toList objsT
+               (moving, _static) = partition physObjectCollides $ toList objsT
 
 -- | Detect collisions between each moving object and
 -- every other object.

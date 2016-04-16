@@ -115,10 +115,11 @@ objEnemies =
 
 splittingBall :: String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall bid p0 v0 = ListSF $ proc i -> do
+  t         <- localTime              -< ()
   bo        <- bouncingBall bid p0 v0 -< i
   click     <- edge -< controllerClick (userInput i)
   let bpos  = physObjectPos bo
-      offspring = [ splittingBall (bid ++ "0") bpos (0,0)
+      offspring = [ splittingBall (bid ++ show t) bpos (0,0)
                   | isEvent click ]
   returnA -< (bo, False, offspring)
 

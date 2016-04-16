@@ -38,7 +38,7 @@ loadResources = do
   return $ Resources myFont myFont2
 
 initializeDisplay :: IO ()
-initializeDisplay = do
+initializeDisplay =
    -- Initialise SDL
   SDL.init [InitEverything]
 
@@ -89,7 +89,7 @@ paintObject screen resources object =
           (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
       _ <- SDLP.filledCircle screen x y ballSize (SDL.Pixel ballColor)
       _ <- SDLP.line screen x y x' y' (SDL.Pixel velColor)
-      
+
       -- Print position
       let font = miniFont resources
       message <- TTF.renderTextSolid font (show $ (round *** round) (objectPos object)) fontColor

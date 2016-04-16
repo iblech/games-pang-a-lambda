@@ -135,7 +135,7 @@ player (p0, v0) = switch (playerProgress (p0, v0) >>> (arr id &&& isTooSmall)) p
        isTooSmall = proc (pos,diffV) -> do
            derivV <- derivative -< diffV
            returnA -< if shouldStop diffV derivV
-                         then (Yampa.Event (pos, derivV))
+                         then Yampa.Event (pos, derivV)
                          else Yampa.NoEvent
 
 shouldStop :: (Double, Double) -> (Double, Double) -> Bool
@@ -169,7 +169,7 @@ sign :: Double -> Double
 sign d | d < 0     = -1
        | otherwise = 1
 
-initialPos = ((fromIntegral width/2), (fromIntegral height/2))
+initialPos = (fromIntegral width/2, fromIntegral height/2)
 
 bounce :: Pos2 -> SF Controller (Pos2, Vel2)
 bounce y0 = bounce' y0 (0, 0) -- (-20)
@@ -193,11 +193,11 @@ hitFrame = arr hitFrame'
                 | hits == (1.0,1.0) = Yampa.NoEvent
                 | otherwise         = Yampa.Event (pos, vel')
          where hits = foldr mergeHit (1,1) [hitB, hitT, hitL, hitR]
-               hitB = if (y + side > (fromIntegral height)) && (vy > 0.0) then (1, -1) else (1,1)
-               hitT = if (y < 0.0 && (vy < 0.0))                          then (1, -1) else (1,1)
-               hitL = if (x < 0.0 && (vx < 0.0))                          then (-1, 1) else (1,1)
-               hitR = if (x + side > (fromIntegral width)) && (vx > 0.0)  then (-1, 1) else (1,1)
-               (x,y)    = pos
+               hitB = if (y + side) > fromIntegral height && vy > 0.0 then (1, -1) else (1,1)
+               hitT = if y < 0.0 && vy < 0.0                          then (1, -1) else (1,1)
+               hitL = if x < 0.0 && vx < 0.0                          then (-1, 1) else (1,1)
+               hitR = if (x + side) > fromIntegral width && vx > 0.0  then (-1, 1) else (1,1)
+               (x, y)   = pos
                (vx, vy) = vel
                mergeHit (p1, p2) (q1, q2) = (p1 * q1, p2 * q2)
                vel' = (vx * fst hits, vy * snd hits)
