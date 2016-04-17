@@ -39,7 +39,7 @@ data Object = Object { objectName           :: !ObjectName
 data ObjectKind = Ball   Double -- radius
                 | Player PlayerState
                 | Side   Side
-                -- | Arrow  ArrowKind
+                | Projectile
                 -- | PowerUp PowerUp
                 -- | Block Size
   deriving (Show,Eq)
@@ -76,4 +76,5 @@ objShape obj = case objectKind obj of
   Ball r -> Rectangle (px -r, py - r) (r*2, r*2)
   Side s -> SemiPlane p s
   Player _ -> Rectangle p (playerWidth, playerHeight)
+  Projectile -> Rectangle (px - 5, 0) (10, py)
  where p@(px,py) = objectPos obj

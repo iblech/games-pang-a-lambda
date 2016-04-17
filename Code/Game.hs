@@ -118,11 +118,18 @@ objEnemies =
 
 player :: String -> Pos2D -> ListSF ObjectInput Object
 player name p0 = ListSF $ proc i -> do
+  t <- localTime -< ()
   (ppos, pvel) <- playerProgress p0 -< userInput i
   let state = case (controllerLeft (userInput i), controllerRight (userInput i)) of
                 (True, _)    -> PlayerLeft
                 (_,    True) -> PlayerRight
                 _            -> PlayerStand
+
+  newF1 <- isEvent ^<< edge -< controllerClick (userInput i)
+
+  let newF1Arrows = [ fire ("fire" ++ name ++ show t)
+                           (fst ppos, 0) False
+                    | newF1 ]
 
   returnA -< (Object { objectName           = name
                      , objectKind           = Player state
@@ -132,7 +139,38 @@ player name p0 = ListSF $ proc i -> do
                      , collisionEnergy      = 1
                      }
              , False
-             , [])
+             , newF1Arrows)
+
+
+-- | This produces bullets that die when they hit the top of the screen.
+-- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
+-- while before they die.
+fire :: String -> (Double, Double) -> Bool -> ListSF ObjectInput Object
+fire name (x0, y0) sticky = ListSF $ proc _ -> do
+  let v0 = 200
+
+  -- Calculate tip of arrow
+  yT <- (y0+) ^<< integral -< v0
+  let y = max 0 yT
+
+  -- Delay death if the fire is "sticky"
+  hit <- switch (constant noEvent &&& (arr (\y -> y > height) >>> edge))
+                (\_ -> stickyDeath sticky)
+      -< y
+  let dead = isEvent hit
+
+  let object = Object { objectName = name
+                      , objectKind = Projectile
+                      , objectPos  = (x0, y)
+                      , objectVel  = (0, 0)
+                      , canCauseCollisions = True
+                      , collisionEnergy = 0
+                      }
+
+  returnA -< (object, dead, [])
+
+stickyDeath True  = after 30 ()
+stickyDeath False = constant (Event ())
 
 getVelocity :: PlayerState -> SF Controller (Double, Double)
 getVelocity pstate = switch (stateVel pstate &&& stateChanged pstate) getVelocity
@@ -190,7 +228,7 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
 
       dead = shouldSplit && tooSmall
 
-  returnA -< (bo, dead, offspring)
+  returnA -< (bo, dead, []) -- offspring)
 
 -- *** Ball
 

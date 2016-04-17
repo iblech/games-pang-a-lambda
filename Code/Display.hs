@@ -124,6 +124,13 @@ paintObject screen resources object =
           rect        = SDL.Rect (x''+30) (y''-30) w h
       SDL.blitSurface message Nothing screen (Just rect)
       return ()
+    Projectile -> do
+        let fireColor = Pixel playerRightColor
+            (x0,y0)   = (\(x,y) -> (x, height - y)) $ objectPos object
+            (dx, dy)  = (10, snd (objectPos object))
+            (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)
+        fillRect screen (Just (Rect x0' y0' dx' dy')) fireColor
+        return ()
 
 -- * Render text with alignment
 printAlignRight :: Surface -> Resources -> String -> (Int, Int) -> IO ()
