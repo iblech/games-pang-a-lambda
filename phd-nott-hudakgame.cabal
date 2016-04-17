@@ -180,6 +180,7 @@ executable phd-nott-hudakgame
 
                    -- General modules
                    Control.Extra.Monad
+                   Data.Extra.IORef
                    Data.Extra.Num
                    Data.Extra.VectorSpace
                    Graphics.UI.Extra.SDL

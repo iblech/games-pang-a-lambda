@@ -49,7 +49,6 @@ import Physics.TwoDimensions.PhysicalObjects
 
 -- Internal iports
 import Constants
-import Collisions
 import GameState
 import Input
 import Objects
@@ -116,21 +115,27 @@ objEnemies =
   , player playerName (320, 20)
   ]
 
+
 player :: String -> Pos2D -> ListSF ObjectInput Object
 player name p0 = ListSF $ proc i -> do
-  t <- localTime -< ()
   (ppos, pvel) <- playerProgress p0 -< userInput i
-  let state = case (controllerLeft (userInput i), controllerRight (userInput i)) of
-                (True, _)    -> PlayerLeft
-                (_,    True) -> PlayerRight
-                _            -> PlayerStand
+  let state = playerState (userInput i)
 
-  newF1 <- isEvent ^<< edge -< controllerClick (userInput i)
-
-  let newF1Arrows = [ fire ("fire" ++ name ++ show t)
-                           (fst ppos, 0) False
+  -- Fire!!
+  newF1  <- isEvent ^<< edge                          -< controllerClick (userInput i)
+  uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
+  let newF1Arrows = [ fire uniqId (fst ppos, 0) False
                     | newF1 ]
 
+  -- Dead?
+  let hitByBall = not $ null
+                $ collisionMask name ("ball" `isPrefixOf`)
+                $ collisions i
+  dead <- isEvent ^<< edge -< hitByBall
+
+  let newPlayer   = [ player name p0 | dead ]
+
+  -- Final player
   returnA -< (Object { objectName           = name
                      , objectKind           = Player state
                      , objectPos            = ppos
@@ -138,8 +143,15 @@ player name p0 = ListSF $ proc i -> do
                      , canCauseCollisions   = True
                      , collisionEnergy      = 1
                      }
-             , False
-             , newF1Arrows)
+             , dead
+             , newF1Arrows ++ newPlayer)
+
+playerState :: Controller -> PlayerState
+playerState controller =
+  case (controllerLeft controller, controllerRight controller) of
+    (True, _)    -> PlayerLeft
+    (_,    True) -> PlayerRight
+    _            -> PlayerStand
 
 
 -- | This produces bullets that die when they hit the top of the screen.
@@ -183,20 +195,8 @@ stateVel PlayerLeft  = constant (-1, 0)
 stateVel PlayerRight = constant (1,  0)
 stateVel PlayerStand = constant (0,  0)
 
-ifDiff :: Eq a => a -> SF a (Event a)
-ifDiff x = loopPre x $ arr $ \(x',y') ->
-  if x' == y'
-   then (noEvent,  x')
-   else (Event x', x')
-
-playerState :: SF Controller PlayerState
-playerState = arr $ \c -> case (controllerLeft c, controllerRight c) of
-  (True, _)    -> PlayerLeft
-  (_,    True) -> PlayerRight
-  _            -> PlayerStand
-
 stateChanged :: PlayerState -> SF Controller (Event PlayerState)
-stateChanged oldState = playerState >>> ifDiff oldState
+stateChanged oldState = arr playerState >>> ifDiff oldState
 
 playerProgress :: (Double, Double) -> SF Controller ((Double, Double), (Double, Double))
 playerProgress p0 = proc (c) -> do
@@ -212,17 +212,8 @@ playerProgress p0 = proc (c) -> do
 playerName :: String
 playerName = "player"
 
-ballCollidedWithFire bid cs =
-  not $ null $
-    filter (any (("fire" `isPrefixOf`).fst)) $
-      filter (any ((== bid).fst)) $
-        map collisionData cs
-
-fireCollidedWithBall fid cs =
-  not $ null $
-    filter (any (("ball" `isPrefixOf`).fst)) $
-      filter (any ((== fid).fst)) $
-        map collisionData cs
+ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
+fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
 
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall size bid p0 v0 = ListSF $ proc i -> do
@@ -419,11 +410,16 @@ restartOn sf sfc = switch (sf &&& sfc)
 spikeOn :: SF a Bool -> SF a (Event ())
 spikeOn sf = noEvent --> (sf >>> edge)
 
--- getVelocity :: Controller -> (Double, Double)
--- getVelocity rc = (rx, 0)
---  where -- ry = rup + rdown
---        rx = rleft + rright
---        -- rup    = if controllerUp rc    then -1 else 0
---        -- rdown  = if controllerDown rc  then 1  else 0
---        rleft  = if controllerLeft rc  then -1 else 0
---        rright = if controllerRight rc then 1  else 0
+ifDiff :: Eq a => a -> SF a (Event a)
+ifDiff x = loopPre x $ arr $ \(x',y') ->
+  if x' == y'
+   then (noEvent,  x')
+   else (Event x', x')
+
+-- * Objects / collisions auxiliary function
+collisionMask :: String -> (String -> Bool) -> Objects.Collisions -> Objects.Collisions
+collisionMask cId pred cs =
+  map Collision $
+   filter (any (pred . fst)) $
+     filter (any ((== cId).fst)) $
+       map collisionData cs

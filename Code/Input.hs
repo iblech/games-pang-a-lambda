@@ -18,6 +18,7 @@ import Graphics.UI.SDL as SDL
 
 -- Internal imports
 import Control.Extra.Monad
+import Data.Extra.IORef
 import Graphics.UI.Extra.SDL
 
 -- * Game controller
@@ -114,11 +115,3 @@ handleEvent c e =
     KeyDown (Keysym { symKey = SDLK_ESCAPE}) -> c { controllerExit       = True  }
     _                                        -> c
 
-
--- * Aux IOREf
-modifyIORefIO :: IORef a -> (a -> IO a) -> IO a
-modifyIORefIO ref modify = do
-  v <- readIORef ref
-  new <- modify v
-  writeIORef ref new
-  return new
