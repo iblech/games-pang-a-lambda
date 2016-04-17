@@ -98,25 +98,24 @@ gamePlay objs = loopPre [] $
 -- | Objects initially present: the walls, the ball, the paddle and the blocks.
 initialObjects :: [ListSF ObjectInput Object]
 initialObjects =
+  -- Walls
   [ inertSF objSideRight
   , inertSF objSideTop
   , inertSF objSideLeft
   , inertSF objSideBottom
   ]
   ++ objEnemies
+  ++ objPlayers
 
 -- ** Enemies
 objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
-  [ splittingBall ballWidth "ballEnemy1" (600, 300) (360, -350)
-  -- , splittingBall ballWidth "ballEnemy2" (500, 300) (-330, -280)
-  -- , splittingBall ballWidth "ballEnemy3" (200, 100) (-300, -250)
-  -- , splittingBall ballWidth "ballEnemy4" (100, 200) (-200, -150)
-  , player playerName (320, 20)
-  ]
-
+  [ splittingBall ballWidth "ballEnemy1" (600, 300) (360, -350) ]
 
 -- ** Player
+objPlayers :: [ListSF ObjectInput Object]
+objPlayers =
+  [ player playerName (320, 20) ]
 
 player :: String -> Pos2D -> ListSF ObjectInput Object
 player name p0 = ListSF $ proc i -> do
@@ -158,45 +157,41 @@ playerState controller =
 playerName :: String
 playerName = "player"
 
-getVelocity :: PlayerState -> SF Controller (Double, Double)
-getVelocity pstate = switch (stateVel pstate &&& stateChanged pstate) getVelocity
-
-stateVel :: PlayerState -> SF a (Double, Double)
-stateVel PlayerLeft  = constant (-1, 0)
-stateVel PlayerRight = constant (1,  0)
-stateVel PlayerStand = constant (0,  0)
-
-stateChanged :: PlayerState -> SF Controller (Event PlayerState)
-stateChanged oldState = arr playerState >>> ifDiff oldState
-
-playerProgress :: (Double, Double) -> SF Controller ((Double, Double), (Double, Double))
+playerProgress :: Pos2D -> SF Controller (Pos2D, Vel2D)
 playerProgress p0 = proc (c) -> do
-  -- rec -- let acc = getVelocity c               -- Acceleration (depends on user input)
-      -- v     <- integral -< acc              -- Velocity according to user input
-      -- vdiff <- integral -<  10 *^ vtotal    -- "Air" resistance (note: I get strange flickers with exponentiation)
-      -- let vtotal = v ^-^ vdiff              -- Subtract resistance from velocity (FIXME: make sure we don't move back")
-  v <- getVelocity PlayerStand -< c
-  let vtotal = 200 *^ v                  -- Subtract resistance from velocity (FIXME: make sure we don't move back")
+  v <- repeatSF getVelocity PlayerStand -< c
+  let vtotal = playerSpeed *^ v         -- Subtract resistance from velocity
+                                        -- (FIXME: make sure we don't move back")
   p <- (p0 ^+^) ^<< integral -< vtotal  -- Add to initial position
   returnA -< (p, vtotal)
+
+ where
+
+   getVelocity :: PlayerState -> SF Controller (Vel2D, Event PlayerState)
+   getVelocity pstate = stateVel pstate &&& stateChanged pstate
+
+   stateVel :: PlayerState -> SF a Vel2D
+   stateVel PlayerLeft  = constant (-1, 0)
+   stateVel PlayerRight = constant (1,  0)
+   stateVel PlayerStand = constant (0,  0)
+
+   stateChanged :: PlayerState -> SF Controller (Event PlayerState)
+   stateChanged oldState = arr playerState >>> ifDiff oldState
 
 -- *** Fire/arrows/bullets/projectiles
 
 -- | This produces bullets that die when they hit the top of the screen.
 -- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
 -- while before they die.
-fire :: String -> (Double, Double) -> Bool -> ListSF ObjectInput Object
+fire :: String -> Pos2D -> Bool -> ListSF ObjectInput Object
 fire name (x0, y0) sticky = ListSF $ proc i -> do
-  let v0 = 200
 
-  -- Calculate tip of arrow
-  yT <- (y0+) ^<< integral -< v0
-  let y = max 0 yT
+  -- Calculate arrow tip
+  yT <- (y0+) ^<< integral -< fireSpeed
+  let y = min height yT
 
   -- Delay death if the fire is "sticky"
-  hit <- switch (constant noEvent &&& (arr (\y -> y > height) >>> edge))
-                (\_ -> stickyDeath sticky)
-      -< y
+  hit <- switch (never &&& fireHitCeiling) (\_ -> stickyDeath sticky) -< y
 
   hitB <- arr (fireCollidedWithBall name) -< collisions i
 
@@ -212,7 +207,10 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
 
   returnA -< (object, dead, [])
 
-fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+ where
+
+   fireHitCeiling = arr (> height) >>> edge
+   fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
 
 stickyDeath True  = after 30 ()
 stickyDeath False = constant (Event ())

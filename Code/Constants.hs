@@ -57,3 +57,9 @@ playerLeftColor = 0x00AAAAFF
 
 playerStandColor :: Word32
 playerStandColor = 0xAAAA00FF
+
+playerSpeed :: Double
+playerSpeed = 200
+
+fireSpeed :: Double
+fireSpeed = 200
