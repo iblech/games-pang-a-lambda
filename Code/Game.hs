@@ -39,6 +39,7 @@ import FRP.Yampa
 import FRP.Yampa.Switches
 
 -- General-purpose internal imports
+import Data.List
 import Data.Extra.VectorSpace
 import Physics.TwoDimensions.Collisions
 import Physics.TwoDimensions.Dimensions
@@ -108,10 +109,10 @@ initialObjects =
 -- *** Enemy
 objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
-  [ splittingBall ballWidth "enemy1" (300, 300) (360, -350)
-  , splittingBall ballWidth "enemy2" (500, 300) (-330, -280)
-  , splittingBall ballWidth "enemy3" (200, 100) (-300, -250)
-  , splittingBall ballWidth "enemy4" (100, 200) (-200, -150)
+  [ splittingBall ballWidth "ballEnemy1" (300, 300) (360, -350)
+  , splittingBall ballWidth "ballEnemy2" (500, 300) (-330, -280)
+  , splittingBall ballWidth "ballEnemy3" (200, 100) (-300, -250)
+  , splittingBall ballWidth "ballEnemy4" (100, 200) (-200, -150)
   , player playerName (320, 20)
   ]
 
@@ -252,7 +253,10 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   -- HN 2014-09-07: With the present strategy, need to be able to
   -- detect an event directly after
   -- ev <- edgeJust -< changedVelocity "ball" cs
-  let ev = maybeToEvent (changedVelocity bid cs)
+  let collisionsWithoutBalls = filter (not . allBalls) cs
+      allBalls (Collision cdata) = all (isPrefixOf "ball" . fst) cdata
+
+  let ev = maybeToEvent (changedVelocity bid collisionsWithoutBalls)
   returnA -< fmap (\v -> (objectPos o, v)) ev
 
 -- | Position of the ball, starting from p0 with velicity v0, since the time of
