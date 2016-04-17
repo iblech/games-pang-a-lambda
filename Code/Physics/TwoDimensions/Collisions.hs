@@ -5,6 +5,9 @@
 -- between shapes.
 module Physics.TwoDimensions.Collisions where
 
+import Collisions
+import Shapes
+import Control.Monad
 import Data.Extra.Num
 import Data.Maybe
 import FRP.Yampa.VectorSpace
@@ -28,9 +31,27 @@ shapeCollisionPoint (Circle p1 _) (Circle p2 _) =
    CollisionAngle angle
   where (px,py) = p2 ^-^ p1
         angle   = atan2 py px
-shapeCollisionPoint (Circle _ _)     (SemiPlane _ s2) = CollisionSide s2
-shapeCollisionPoint (SemiPlane _ s1) (Circle _ _ )    = CollisionSide (oppositeSide s1)
-shapeCollisionPoint (SemiPlane _ _)  (SemiPlane _ s2) = CollisionSide s2
+shapeCollisionPoint (Circle _ _)     (SemiPlane _ s2)  = CollisionSide s2
+shapeCollisionPoint (SemiPlane _ s1) (Circle _ _ )     = CollisionSide (oppositeSide s1)
+shapeCollisionPoint (SemiPlane _ _)  (SemiPlane _ s2)  = CollisionSide s2
+shapeCollisionPoint (Circle p1 s1)   (Rectangle p2 s2) =
+   velCollitionSide $ fromJust $ responseCircleAABB (p1, s1) (rectangleToCentre (p2, s2))
+shapeCollisionPoint r@(Rectangle _ _) c@(Circle _ _)      = let CollisionSide side = shapeCollisionPoint c r
+                                                            in CollisionSide (oppositeSide side)
+shapeCollisionPoint r@(Rectangle _ _) (SemiPlane p2 s2)   = let (p2', s2') = semiplaneRectangle p2 s2
+                                                            in shapeCollisionPoint r (Rectangle p2' s2')
+shapeCollisionPoint p@(SemiPlane _ _) r@(Rectangle _ _)   = let CollisionSide side = shapeCollisionPoint r p
+                                                            in CollisionSide (oppositeSide side)
+shapeCollisionPoint (Rectangle p1 s1) (Rectangle p2 s2) =
+   velCollitionSide $ fromJust $ responseAABB2 (p1, s1) (p2, s2)
+
+velCollitionSide (vx, vy)
+  | vx < 0 && abs vx > abs vy = CollisionSide RightSide
+  | vx > 0 && abs vx > abs vy = CollisionSide LeftSide
+  | vy > 0 && abs vx < abs vy = CollisionSide TopSide
+  -- | vy > 0 && abs vx < abs vy
+  | otherwise                 = CollisionSide BottomSide
+
 -- * Collisions
 type Collisions k = [Collision k]
 
@@ -43,7 +64,54 @@ data Collision k = Collision
   { collisionData :: [(k, Vel2D)] } -- ObjectId x Velocity
  deriving Show
 
--- | Detects a collision between one object and another.
+-- -- | Detects a collision between one object and another.
+-- detectCollision :: (PhysicalObject o k Shape) => o -> o -> Maybe (Collision k)
+-- detectCollision obj1 obj2 =
+--   case (physObjectShape obj1, physObjectShape obj2) of
+--     (Circle p1 r1, Circle p2 r2) -> do
+--       -- In the maybe monad
+--       guard (overlapsCircle2 (p1,r1) (p2,r2))
+--       vd1 <- responseCircle2 (p1, r1) (p2, r2)
+--       vd2 <- return $ (\(vx, vy) -> (-vx, -vy)) vd1
+--       -- vd2 <- responseCircle2 (p2, r2) (p1, r1)
+--       return $ Collision [ (physObjectId obj1, vd1)
+--                          , (physObjectId obj2, vd2)
+--                          ]
+--     (Circle (p1x,p1y) s1, SemiPlane (px,py) side) -> do
+--       case side of
+--          LeftSide   -> guard (p1x - s1 <= px && fst (physObjectVel obj1) < 0)
+--          RightSide  -> guard (p1x + s1 >= px && fst (physObjectVel obj1) > 0)
+--          TopSide    -> guard (p1y - s1 <= py && snd (physObjectVel obj1) < 0)
+--          BottomSide -> guard (p1y + s1 >= py && snd (physObjectVel obj1) > 0)
+--       vd <- case side of
+--               LeftSide   -> return $ (\(vx,vy) -> ((-1) * vx, 0)) $ physObjectVel obj1
+--               RightSide  -> return $ (\(vx,vy) -> ((-1) * vx, 0)) $ physObjectVel obj1
+--               TopSide    -> return $ (\(vx,vy) -> (0, (-1) * vy)) $ physObjectVel obj1
+--               BottomSide -> return $ (\(vx,vy) -> (0, (-1) * vy)) $ physObjectVel obj1
+--       return $ Collision [ (physObjectId obj1, vd)
+--                          , (physObjectId obj2, (0,0))
+--                          ]
+--     (Circle p1 r1, Rectangle p2 s2) -> do
+--       -- In the maybe monad
+--       guard (circleAABBOverlap (p1,r1) (p2,s2))
+--       vd1 <- responseCircleAABB (p1, r1) (p2, s2)
+--       vd2 <- return $ (\(vx, vy) -> (-vx, -vy)) vd1
+--       return $ Collision [ (physObjectId obj1, vd1)
+--                          , (physObjectId obj2, vd2)
+--                          ]
+--     (Rectangle p1 s1, Rectangle p2 s2) -> do
+--       guard (overlapsAABB2 (p1, s1) (p2, s2))
+--       vd1 <- responseAABB2 (p1, s1) (p2, s2)
+--       vd2 <- return $ (\(vx, vy) -> (-vx, -vy)) vd1
+--       return $ Collision [ (physObjectId obj1, vd1)
+--                          , (physObjectId obj2, vd2)
+--                          ]
+--     (SemiPlane _ _, Circle _ _) -> detectCollision obj2 obj1
+--     (Rectangle _ _, Circle _ _) -> detectCollision obj2 obj1
+--     _ -> Nothing
+
+
+
 detectCollision :: (PhysicalObject o k Shape) => o -> o -> Maybe (Collision k)
 detectCollision obj1 obj2
   | overlap obj1 obj2

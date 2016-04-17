@@ -7,6 +7,10 @@ module Physics.TwoDimensions.Shapes where
 import FRP.Yampa.VectorSpace
 import Physics.TwoDimensions.Dimensions
 
+import Constants
+import Collisions
+import Shapes
+
 -- | Side of a rectangle
 data Side = TopSide | BottomSide | LeftSide | RightSide
   deriving (Eq,Show)
@@ -42,4 +46,21 @@ overlapShape (Circle (p1x,p1y) s1) (SemiPlane (px,py) side) = case side of
   TopSide    -> p1y - s1 <= py
   BottomSide -> p1y + s1 >= py
 overlapShape s@(SemiPlane _ _) c@(Circle _ _) = overlapShape c s
-overlapShape _                 _              = False -- Not really, it's just that we don't care
+overlapShape r@(Rectangle _ _) c@(Circle _ _) = overlapShape c r
+overlapShape (Circle p1 s1)    (Rectangle p2 s2) =
+  circleAABBOverlap (p1,s1) (rectangleToCentre (p2,s2))
+overlapShape (Rectangle p1 s1) (Rectangle p2 s2) =
+  overlapsAABB2 (rectangleToCentre (p1, s1)) (rectangleToCentre (p2, s2))
+overlapShape (Rectangle p1 s1) (SemiPlane p2 side2) =
+  let (p2', s2') = semiplaneRectangle p2 side2
+  in overlapsAABB2 (rectangleToCentre (p1, s1)) (rectangleToCentre (p2', s2'))
+overlapShape p@(SemiPlane _ _) r@(Rectangle _ _) = overlapShape r p
+overlapShape _                 _                 = False -- Not really, it's just that we don't care
+
+semiplaneRectangle p2 s2 =  case s2 of
+  LeftSide   -> (p2 ^-^ (100, 100), (100,   height + 200))
+  RightSide  -> (p2 ^-^ (0,   100), (100,   height + 200))
+  TopSide    -> (p2 ^-^ (100, 100), (width + 200, 100))
+  BottomSide -> (p2 ^-^ (100,   0), (width + 200, 100))
+
+rectangleToCentre ((px, py), (sw, sh)) = ((px + (sw / 2), py + (sh / 2)), (sw / 2, sh / 2))

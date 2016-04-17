@@ -48,6 +48,7 @@ import Physics.TwoDimensions.PhysicalObjects
 
 -- Internal iports
 import Constants
+import Collisions
 import GameState
 import Input
 import Objects
@@ -126,8 +127,8 @@ player name p0 = ListSF $ proc i -> do
                      , objectKind           = Player state
                      , objectPos            = ppos
                      , objectVel            = pvel
-                     , canCauseCollisions   = False
-                     , collisionEnergy      = 0
+                     , canCauseCollisions   = True
+                     , collisionEnergy      = 1
                      }
              , False
              , [])

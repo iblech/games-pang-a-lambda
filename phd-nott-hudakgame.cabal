@@ -168,6 +168,7 @@ executable phd-nott-hudakgame
     other-modules:
                    -- Game specific
                    Constants
+                   Collisions
                    Debug
                    Display
                    Game
