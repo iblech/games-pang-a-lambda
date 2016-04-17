@@ -146,7 +146,7 @@ player name p0 = ListSF $ proc i -> do
 -- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
 -- while before they die.
 fire :: String -> (Double, Double) -> Bool -> ListSF ObjectInput Object
-fire name (x0, y0) sticky = ListSF $ proc _ -> do
+fire name (x0, y0) sticky = ListSF $ proc i -> do
   let v0 = 200
 
   -- Calculate tip of arrow
@@ -157,7 +157,10 @@ fire name (x0, y0) sticky = ListSF $ proc _ -> do
   hit <- switch (constant noEvent &&& (arr (\y -> y > height) >>> edge))
                 (\_ -> stickyDeath sticky)
       -< y
-  let dead = isEvent hit
+
+  hitB <- arr (fireCollidedWithBall name) -< collisions i
+
+  let dead = isEvent hit || hitB
 
   let object = Object { objectName = name
                       , objectKind = Projectile
@@ -209,26 +212,43 @@ playerProgress p0 = proc (c) -> do
 playerName :: String
 playerName = "player"
 
+ballCollidedWithFire bid cs =
+  not $ null $
+    filter (any (("fire" `isPrefixOf`).fst)) $
+      filter (any ((== bid).fst)) $
+        map collisionData cs
+
+fireCollidedWithBall fid cs =
+  not $ null $
+    filter (any (("ball" `isPrefixOf`).fst)) $
+      filter (any ((== fid).fst)) $
+        map collisionData cs
+
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall size bid p0 v0 = ListSF $ proc i -> do
-  t         <- localTime                    -< ()
+  t         <- localTime                   -< ()
   bo        <- bouncingBall size bid p0 v0 -< i
-  click     <- edge -< controllerClick (userInput i)
+  click     <- edge <<< arr (ballCollidedWithFire bid) -< collisions i -- controllerClick (userInput i)
   let tooSmall    = size <= (ballWidth / 2)
       shouldSplit = isEvent click
 
   let offspringSize = (5 * size / 6) -- Or: size
 
-  let offspringID = (bid ++ show t) -- Should be unique or collisions won't work
+  let offspringIDL = (bid ++ show t ++ "L") -- Should be unique or collisions won't work
+      offspringIDR = (bid ++ show t ++ "R") -- Should be unique or collisions won't work
+      bpos = physObjectPos bo
+      bvel = physObjectPos bo
+      ovel = (\(vx,vy) -> (-vx, vy)) bvel
 
-      offspring = [ splittingBall offspringSize offspringID bpos (0,0)
-                  | shouldSplit && not tooSmall
-                  , let bpos = physObjectPos bo
-                  ]
+      offspring = if (shouldSplit && not tooSmall)
+                   then [ splittingBall offspringSize offspringIDL bpos bvel
+                        , splittingBall offspringSize offspringIDR bpos ovel
+                        ]
+                   else []
 
-      dead = shouldSplit && tooSmall
+      dead = shouldSplit -- && tooSmall
 
-  returnA -< (bo, dead, []) -- offspring)
+  returnA -< (bo, dead, offspring)
 
 -- *** Ball
 
