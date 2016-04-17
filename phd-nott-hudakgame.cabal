@@ -148,3 +148,42 @@ executable phd-nott-hudakgame-splitballs
                    Physics.TwoDimensions.GameCollisions
                    Physics.TwoDimensions.PhysicalObjects
                    Physics.TwoDimensions.Shapes
+
+executable phd-nott-hudakgame
+    build-depends: base >=4.6 && <5,
+                   bytestring,
+                   containers -any,
+                   IfElse -any,
+                   mtl -any,
+                   transformers >=0.3 && <0.5,
+                   Yampa >=0.9.6 && <0.11,
+
+                   SDL -any,
+                   SDL-gfx -any,
+                   SDL-ttf -any
+
+    main-is: Main.hs
+    hs-source-dirs: Code/
+    ghc-options: -Wall
+    other-modules:
+                   -- Game specific
+                   Constants
+                   Debug
+                   Display
+                   Game
+                   GameState
+                   Input
+                   Objects
+                   ObjectSF
+                   Resources
+
+                   -- General modules
+                   Control.Extra.Monad
+                   Data.Extra.Num
+                   Data.Extra.VectorSpace
+                   Graphics.UI.Extra.SDL
+                   Physics.TwoDimensions.Collisions
+                   Physics.TwoDimensions.Dimensions
+                   Physics.TwoDimensions.GameCollisions
+                   Physics.TwoDimensions.PhysicalObjects
+                   Physics.TwoDimensions.Shapes
