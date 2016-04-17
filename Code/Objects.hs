@@ -72,7 +72,8 @@ instance PhysicalObject Object String Shape where
 
 objShape :: Object -> Shape
 objShape obj = case objectKind obj of
-  Ball r -> Circle p r
+  -- Ball r -> Circle p r
+  Ball r -> Rectangle (px -r, py - r) (r*2, r*2)
   Side s -> SemiPlane p s
   Player _ -> Rectangle p (playerWidth, playerHeight)
- where p = objectPos obj
+ where p@(px,py) = objectPos obj

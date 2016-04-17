@@ -27,17 +27,19 @@ import           Physics.TwoDimensions.Shapes
 -- only 2).
 --
 detectCollisions :: Foldable t => (Eq n , PhysicalObject o n Shape) => t o -> Collisions n
-detectCollisions = detectCollisionsH
- where detectCollisionsH objsT = flattened
-         where -- Eliminate empty collision sets
-               -- TODO: why is this really necessary?
-               flattened = filter (\(C.Collision n) -> not (null n)) collisions
+detectCollisions objsT = flattened
+  where -- Eliminate empty collision sets
+        -- TODO: why is this really necessary?
+        flattened = filter collisionNotEmpty collisions
 
-               -- Detect collisions between moving objects and any other objects
-               collisions = detectCollisions' objsT moving
+        -- Detect collisions between moving objects and any other objects
+        collisions = detectCollisions' objsT moving
 
-               -- Partition the object space between moving and static objects
-               (moving, _static) = partition physObjectCollides $ toList objsT
+        -- Partition the object space between moving and static objects
+        (moving, _static) = partition physObjectCollides $ toList objsT
+
+        -- Is the collision set empty?
+        collisionNotEmpty (C.Collision n) = not (null n)
 
 -- | Detect collisions between each moving object and
 -- every other object.

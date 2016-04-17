@@ -9,7 +9,6 @@ import Physics.TwoDimensions.Dimensions
 
 import Constants
 import Collisions
-import Shapes
 
 -- | Side of a rectangle
 data Side = TopSide | BottomSide | LeftSide | RightSide

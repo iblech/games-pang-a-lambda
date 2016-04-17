@@ -5,8 +5,11 @@ import Control.Applicative
 import Control.Arrow
 import Data.Maybe
 
+import Physics.TwoDimensions.Dimensions
+-- import Physics.TwoDimensions.Shapes
+import FRP.Yampa.VectorSpace
 import Shapes
-import Data
+import Data(pointX, pointY, rotateRespect, unrotateRespect, vectorWithMagnitude, minimumWith, swap)
 
 circleAABBOverlap :: Circle -> AABB -> Bool
 circleAABBOverlap c@(cp,cr) (rp, rs) =
