@@ -24,8 +24,8 @@ maxVNorm :: Double
 maxVNorm = 500
 
 ballWidth, ballHeight :: Double
-ballWidth  = 25
-ballHeight = 25
+ballWidth  = 100
+ballHeight = 100
 
 ballMargin :: Double
 ballMargin = 3

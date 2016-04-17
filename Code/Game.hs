@@ -110,9 +110,9 @@ initialObjects =
 objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
   [ splittingBall ballWidth "ballEnemy1" (300, 300) (360, -350)
-  , splittingBall ballWidth "ballEnemy2" (500, 300) (-330, -280)
-  , splittingBall ballWidth "ballEnemy3" (200, 100) (-300, -250)
-  , splittingBall ballWidth "ballEnemy4" (100, 200) (-200, -150)
+  -- , splittingBall ballWidth "ballEnemy2" (500, 300) (-330, -280)
+  -- , splittingBall ballWidth "ballEnemy3" (200, 100) (-300, -250)
+  -- , splittingBall ballWidth "ballEnemy4" (100, 200) (-200, -150)
   , player playerName (320, 20)
   ]
 
@@ -229,10 +229,10 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
   t         <- localTime                   -< ()
   bo        <- bouncingBall size bid p0 v0 -< i
   click     <- edge <<< arr (ballCollidedWithFire bid) -< collisions i -- controllerClick (userInput i)
-  let tooSmall    = size <= (ballWidth / 2)
+  let tooSmall    = size <= (ballWidth / 8)
       shouldSplit = isEvent click
 
-  let offspringSize = (5 * size / 6) -- Or: size
+  let offspringSize = size / 2
 
   let offspringIDL = (bid ++ show t ++ "L") -- Should be unique or collisions won't work
       offspringIDR = (bid ++ show t ++ "R") -- Should be unique or collisions won't work
@@ -329,7 +329,7 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
   -- presses the Halt key (hence the dependency on the controller input ci).
 
   vInit <- startAs v0 -< ci
-  vel   <- vdiffSF    -< (vInit, (0, -100.8), ci)
+  vel   <- vdiffSF    -< (vInit, (0, -1000.8), ci)
 
   -- Any free moving object behaves like this (but with
   -- acceleration. This should be in some FRP.NewtonianPhysics
