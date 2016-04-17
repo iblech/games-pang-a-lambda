@@ -79,36 +79,36 @@ wholeGame = gamePlay initialObjects >>> composeGameState
 
 gamePlay :: [ListSF ObjectInput Object] -> SF Controller (Objects, Time)
 gamePlay objs = loopPre [] $
-   -- Process physical movement and detect new collisions
-   proc (i) -> do
-      -- Adapt Input
-      let oi = (uncurry ObjectInput) i
+  -- Process physical movement and detect new collisions
+  proc i -> do
+     -- Adapt Input
+     let oi = (uncurry ObjectInput) i
 
-      -- Step
-      -- Each obj processes its movement forward
-      ol  <- dlSwitch objs -< oi
-      let cs' = detectCollisions ol
+     -- Step
+     -- Each obj processes its movement forward
+     ol  <- dlSwitch objs -< oi
+     let cs' = detectCollisions ol
 
-      -- Output
-      tLeft <- time        -< ()
-      returnA -< ((ol, tLeft), cs')
+     -- Output
+     tLeft <- time -< ()
+     returnA -< ((ol, tLeft), cs')
 
 -- * Game objects
 --
 -- | Objects initially present: the walls, the ball, the paddle and the blocks.
 initialObjects :: [ListSF ObjectInput Object]
 initialObjects =
-    [ inertSF objSideRight
-    , inertSF objSideTop
-    , inertSF objSideLeft
-    , inertSF objSideBottom
-    ]
-    ++ objEnemies
+  [ inertSF objSideRight
+  , inertSF objSideTop
+  , inertSF objSideLeft
+  , inertSF objSideBottom
+  ]
+  ++ objEnemies
 
 -- ** Enemies
 objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
-  [ splittingBall ballWidth "ballEnemy1" (300, 300) (360, -350)
+  [ splittingBall ballWidth "ballEnemy1" (600, 300) (360, -350)
   -- , splittingBall ballWidth "ballEnemy2" (500, 300) (-330, -280)
   -- , splittingBall ballWidth "ballEnemy3" (200, 100) (-300, -250)
   -- , splittingBall ballWidth "ballEnemy4" (100, 200) (-200, -150)
@@ -255,32 +255,25 @@ ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
 -- collision and corrected velocity, and starts again.
 --
 bouncingBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
-bouncingBall size bid p0 v0 =
-  switch progressAndBounce
-         (uncurry (bouncingBall size bid)) -- Somehow it would be clearer like this:
-                                           -- \(p', v') -> bouncingBall p' v')
- where
+bouncingBall size bid p0 v0 = repeatSF (progressAndBounce size bid) (p0, v0)
 
-       -- Calculate the future tentative position, and
-       -- bounce if necessary.
-       --
-       -- The ballBounce needs the ball SF' input (which has knowledge of
-       -- collisions), so we carry it parallely to the tentative new positions,
-       -- and then use it to detect when it's time to bounce
+-- | Calculate the future tentative position, and bounce if necessary. Pass on
+-- snapshot of ball position and velocity if bouncing.
+progressAndBounce :: Double -> String -> (Pos2D, Vel2D)
+                  -> SF ObjectInput (Object, Event (Pos2D, Vel2D))
+progressAndBounce size bid (p0, v0) = proc i -> do
 
-       --      ==========================    ============================
-       --     -==--------------------->==--->==-   ------------------->==
-       --    / ==                      ==    == \ /                    ==
-       --  --  ==                      ==    ==  X                     ==
-       --    \ ==                      ==    == / \                    ==
-       --     -==----> freeBall' ----->==--->==--------> ballBounce -->==
-       --      ==========================    ============================
-       progressAndBounce = (arr id &&& freeBall') >>> (arr snd &&& ballBounce bid)
+  -- Position of the ball, starting from p0 with velicity v0, since the
+  -- time of last switching (or being fired, whatever happened last)
+  -- provided that no obstacles are encountered.
+  o <- freeBall size bid p0 v0 -< i
 
-       -- Position of the ball, starting from p0 with velicity v0, since the
-       -- time of last switching (or being fired, whatever happened last)
-       -- provided that no obstacles are encountered.
-       freeBall' = freeBall size bid p0 v0
+  -- The ballBounce needs the ball SF' input (which has knowledge of
+  -- collisions), so we carry it parallely to the tentative new
+  -- positions, and then use it to detect when it's time to bounce
+  b <- ballBounce bid -< (i, o)
+
+  returnA -< (o, b)
 
 -- | Detect if the ball must bounce and, if so, take a snapshot of the object's
 -- current position and velocity.
@@ -419,6 +412,9 @@ ifDiff x = loopPre x $ arr $ \(x',y') ->
   if x' == y'
    then (noEvent,  x')
    else (Event x', x')
+
+repeatSF :: (c -> SF a (b, Event c)) -> c -> SF a b
+repeatSF sf c = switch (sf c) (repeatSF sf)
 
 -- * Objects / collisions auxiliary function
 collisionMask :: String -> (String -> Bool) -> Objects.Collisions -> Objects.Collisions
