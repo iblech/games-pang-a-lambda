@@ -105,7 +105,7 @@ initialObjects =
     ]
     ++ objEnemies
 
--- *** Enemy
+-- ** Enemies
 objEnemies :: [ListSF ObjectInput Object]
 objEnemies =
   [ splittingBall ballWidth "ballEnemy1" (300, 300) (360, -350)
@@ -115,6 +115,8 @@ objEnemies =
   , player playerName (320, 20)
   ]
 
+
+-- ** Player
 
 player :: String -> Pos2D -> ListSF ObjectInput Object
 player name p0 = ListSF $ proc i -> do
@@ -153,6 +155,32 @@ playerState controller =
     (_,    True) -> PlayerRight
     _            -> PlayerStand
 
+playerName :: String
+playerName = "player"
+
+getVelocity :: PlayerState -> SF Controller (Double, Double)
+getVelocity pstate = switch (stateVel pstate &&& stateChanged pstate) getVelocity
+
+stateVel :: PlayerState -> SF a (Double, Double)
+stateVel PlayerLeft  = constant (-1, 0)
+stateVel PlayerRight = constant (1,  0)
+stateVel PlayerStand = constant (0,  0)
+
+stateChanged :: PlayerState -> SF Controller (Event PlayerState)
+stateChanged oldState = arr playerState >>> ifDiff oldState
+
+playerProgress :: (Double, Double) -> SF Controller ((Double, Double), (Double, Double))
+playerProgress p0 = proc (c) -> do
+  -- rec -- let acc = getVelocity c               -- Acceleration (depends on user input)
+      -- v     <- integral -< acc              -- Velocity according to user input
+      -- vdiff <- integral -<  10 *^ vtotal    -- "Air" resistance (note: I get strange flickers with exponentiation)
+      -- let vtotal = v ^-^ vdiff              -- Subtract resistance from velocity (FIXME: make sure we don't move back")
+  v <- getVelocity PlayerStand -< c
+  let vtotal = 200 *^ v                  -- Subtract resistance from velocity (FIXME: make sure we don't move back")
+  p <- (p0 ^+^) ^<< integral -< vtotal  -- Add to initial position
+  returnA -< (p, vtotal)
+
+-- *** Fire/arrows/bullets/projectiles
 
 -- | This produces bullets that die when they hit the top of the screen.
 -- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
@@ -184,36 +212,12 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
 
   returnA -< (object, dead, [])
 
+fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+
 stickyDeath True  = after 30 ()
 stickyDeath False = constant (Event ())
 
-getVelocity :: PlayerState -> SF Controller (Double, Double)
-getVelocity pstate = switch (stateVel pstate &&& stateChanged pstate) getVelocity
-
-stateVel :: PlayerState -> SF a (Double, Double)
-stateVel PlayerLeft  = constant (-1, 0)
-stateVel PlayerRight = constant (1,  0)
-stateVel PlayerStand = constant (0,  0)
-
-stateChanged :: PlayerState -> SF Controller (Event PlayerState)
-stateChanged oldState = arr playerState >>> ifDiff oldState
-
-playerProgress :: (Double, Double) -> SF Controller ((Double, Double), (Double, Double))
-playerProgress p0 = proc (c) -> do
-  -- rec -- let acc = getVelocity c               -- Acceleration (depends on user input)
-      -- v     <- integral -< acc              -- Velocity according to user input
-      -- vdiff <- integral -<  10 *^ vtotal    -- "Air" resistance (note: I get strange flickers with exponentiation)
-      -- let vtotal = v ^-^ vdiff              -- Subtract resistance from velocity (FIXME: make sure we don't move back")
-  v <- getVelocity PlayerStand -< c
-  let vtotal = 200 *^ v                  -- Subtract resistance from velocity (FIXME: make sure we don't move back")
-  p <- (p0 ^+^) ^<< integral -< vtotal  -- Add to initial position
-  returnA -< (p, vtotal)
-
-playerName :: String
-playerName = "player"
-
-ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
-fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+-- *** Ball
 
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall size bid p0 v0 = ListSF $ proc i -> do
@@ -241,7 +245,7 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
 
   returnA -< (bo, dead, offspring)
 
--- *** Ball
+ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
 
 -- A bouncing ball moves freely until there is a collision, then bounces and
 -- goes on and on.
