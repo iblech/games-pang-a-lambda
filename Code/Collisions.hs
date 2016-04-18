@@ -59,7 +59,8 @@ responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
 
  where overlaps = [ overlapX,   overlapY
                   , overlapP11, overlapP12
-                  , overlapP21, overlapP22 ]
+                  , overlapP21, overlapP22
+                  ]
 
        -- Square coordinates
        p211@(p211x, p211y) = p2 ^-^ s2
@@ -87,7 +88,6 @@ responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
        overlapP21 = (pointX &&& unrotateRespect p221) <$> circleOverlaps (xProjection rotatedP221)
        overlapP22 = (pointX &&& unrotateRespect p222) <$> circleOverlaps (xProjection rotatedP222)
 
-       -- overlapSegment (x01,x02) (x11, x12) = x11 <= x02 && x12 >= x01
        overlapSegment (x01,x02) (x11, x12)
          | segmentLength' >  0 = Just (segmentLength, 0)
          | otherwise           = Nothing
