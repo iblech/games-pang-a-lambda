@@ -80,9 +80,9 @@ wholeGame = gamePlay initialObjects >>> composeGameState
 gamePlay :: [ListSF ObjectInput Object] -> SF Controller (Objects, Time)
 gamePlay objs = loopPre [] $
   -- Process physical movement and detect new collisions
-  proc i -> do
+  proc (input, cs) -> do
      -- Adapt Input
-     let oi = (uncurry ObjectInput) i
+     let oi = ObjectInput input cs
 
      -- Step
      -- Each obj processes its movement forward
@@ -90,7 +90,7 @@ gamePlay objs = loopPre [] $
      let cs' = detectCollisions ol
 
      -- Output
-     tLeft <- time -< ()
+     tLeft   <- time -< ()
      returnA -< ((ol, tLeft), cs')
 
 -- * Game objects
