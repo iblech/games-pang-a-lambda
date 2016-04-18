@@ -6,19 +6,18 @@ import Control.Arrow
 import Data.Maybe
 
 import Physics.TwoDimensions.Dimensions
--- import Physics.TwoDimensions.Shapes
 import FRP.Yampa.VectorSpace
 import Shapes
-import Data(pointX, rotateRespect, unrotateRespect, vectorWithMagnitude, minimumWith, swap)
+import Data ( pointX, rotateRespect, unrotateRespect
+            , vectorWithMagnitude, minimumWith, swap
+            )
 
 circleAABBOverlap :: Circle -> AABB -> Bool
 circleAABBOverlap c@(cp,cr) (rp, rs) =
   circleAABBOverlap' ((0,0), cr) (rp ^-^ cp, rs)
 
 circleAABBOverlap' :: Circle -> AABB -> Bool
--- circleAABBOverlap' ((0,0),r1) (p2@(p2x, p2y), s2@(w2, h2))
 circleAABBOverlap' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2)) =
-  -- trace (show (r1, rectangleVertices, map (rotateRespect p211) rectangleVertices)) overlapP11
   overlapX && overlapY && overlapP11 && overlapP12 && overlapP21 && overlapP22
  where -- Square coordinates
        p211@(p211x, p211y) = p2 ^-^ s2
@@ -45,14 +44,9 @@ circleAABBOverlap' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2)) =
        overlapP21 = (-r1, r1) `overlapSegment` projection rotatedP221
        overlapP22 = (-r1, r1) `overlapSegment` projection rotatedP222
 
-       -- overlapSegment (x01,x02) (x11, x12) = x11 <= x02 && x12 >= x01
        overlapSegment (x01,x02) (x11, x12) = min x02 x12 > max x01 x11
 
--- rotateRespect (vx, vy) = rotateRespect' (normalize (vx, -vy))
--- rotateRespect' (ct, st) (px, py) = (ct * px - st * py, st * px + ct * py)
-
 -- * Colision detection
---
 responseCircleAABB :: Circle -> AABB -> Maybe Pos2D
 responseCircleAABB c@(cp,cr) (rp, rs) =
   responseCircleAABB' ((0,0), cr) (rp ^-^ cp, rs)
@@ -65,7 +59,9 @@ responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
   | otherwise
   = Nothing
 
- where overlaps = [ overlapX , overlapY , overlapP11 , overlapP12 , overlapP21 , overlapP22 ]
+ where overlaps = [ overlapX,   overlapY
+                  , overlapP11, overlapP12
+                  , overlapP21, overlapP22 ]
 
        -- Square coordinates
        p211@(p211x, p211y) = p2 ^-^ s2
@@ -74,7 +70,6 @@ responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
        p222@(p222x, p222y) = p2 ^+^ s2
 
        -- Horizontal projection overlap
-       -- overlapX = r1 + w2 - (abs (p2x - p1x))
        overlapX =  (pointX &&& id)   <$> (-r1, r1) `overlapSegment` (p2x - w2, p2x + w2)
        overlapY =  (pointX &&& swap) <$> (-r1, r1) `overlapSegment` (p2y - h2, p2y + h2)
 
