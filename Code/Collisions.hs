@@ -97,13 +97,6 @@ responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
                segmentLength'  = if segmentLength'' == 0 then 1 else segmentLength''
                segmentLength'' = min x02 x12 - max x01 x11
 
-         -- There seems to be an artifact
-               -- segmentLength'  = segmentLength'' -- if segmentLength'' == 0 then 1 else segmentLength''
-         -- where segmentLength = if midPoint1 < midPoint0 then segmentLength' else -segmentLength'
-               -- midPoint0 = (x02 + x01) -- / 2
-               -- midPoint1 = (x12 + x11) -- / 2
-               -- orient    = midPoint1 - midPoint0
-
 responseAABB2 :: AABB -> AABB -> Maybe Pos2D
 responseAABB2 (pos1, size1) (pos2, size2)
  | overlap && overlapx > overlapy = Just cy
