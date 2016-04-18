@@ -95,7 +95,7 @@ gamePlay objs = loopPre [] $
 
 -- * Game objects
 --
--- | Objects initially present: the walls, the ball, the paddle and the blocks.
+-- | Objects initially present: the walls, the ball, the player and the blocks.
 initialObjects :: [ListSF ObjectInput Object]
 initialObjects =
   -- Walls
@@ -287,10 +287,8 @@ progressAndBounce size bid (p0, v0) = proc i -> do
 -- current position and velocity.
 --
 -- NOTE: To avoid infinite loops when switching, the initial input is discarded
--- and never causes a bounce. This works in this game and in this particular
--- case because the ball never-ever bounces immediately as fired from the
--- paddle.  This might not be true if a block is extremely close, if you add
--- flying enemies to the game, etc.
+-- and never causes a bounce. Careful: this prevents the ball from bouncing
+-- immediately after creation, which may or may not be what we want.
 ballBounce :: String -> SF (ObjectInput, Object) (Event (Pos2D, Vel2D))
 ballBounce bid = noEvent --> ballBounce' bid
 
@@ -299,9 +297,9 @@ ballBounce bid = noEvent --> ballBounce' bid
 --
 -- This does the core of the work, and does not ignore the initial input.
 --
--- It proceeds by detecting whether any collision affects
--- the ball's velocity, and outputs a snapshot of the object
--- position and the corrected velocity if necessary.
+-- It proceeds by detecting whether any collision affects the ball's velocity,
+-- and outputs a snapshot of the object position and the corrected velocity if
+-- necessary.
 ballBounce' :: String -> SF (ObjectInput, Object) (Event (Pos2D, Vel2D))
 ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   -- HN 2014-09-07: With the present strategy, need to be able to
