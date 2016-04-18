@@ -53,7 +53,6 @@ responseCircleAABB c@(cp,cr) (rp, rs) =
 responseCircleAABB' :: Circle -> AABB -> Maybe Pos2D
 responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
   | all isJust overlaps
-  -- = Just $ minimumWith vectorWithMagnitude $ map fromJust overlaps
   = (Just . snd) $ minimumWith (abs.fst) $ map fromJust overlaps
   | otherwise
   = Nothing
