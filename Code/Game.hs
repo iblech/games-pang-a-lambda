@@ -41,7 +41,7 @@ import FRP.Yampa.Switches
 -- General-purpose internal imports
 import Data.List
 import Data.Extra.VectorSpace
-import Physics.TwoDimensions.Collisions
+import Physics.TwoDimensions.Collisions       as Collisions
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.GameCollisions
 import Physics.TwoDimensions.Shapes
@@ -395,13 +395,11 @@ objWall name side pos = proc (ObjectInput ci cs) -> do
 maybeToEvent :: Maybe a -> Event a
 maybeToEvent = maybe noEvent Event
 
+-- ** ListSF that never dies or produces offspring
 inertSF :: SF a b -> ListSF a b
 inertSF sf = ListSF (sf >>> arr (\o -> (o, False, [])))
 
-restartOn :: SF a b -> SF a (Event c) -> SF a b
-restartOn sf sfc = switch (sf &&& sfc)
-                          (\_ -> restartOn sf sfc)
-
+-- ** Event-producing SF combinators
 spikeOn :: SF a Bool -> SF a (Event ())
 spikeOn sf = noEvent --> (sf >>> edge)
 
@@ -411,13 +409,23 @@ ifDiff x = loopPre x $ arr $ \(x',y') ->
    then (noEvent,  x')
    else (Event x', x')
 
+-- ** Repetitive switching
+
 repeatSF :: (c -> SF a (b, Event c)) -> c -> SF a b
 repeatSF sf c = switch (sf c) (repeatSF sf)
 
+restartOn :: SF a b -> SF a (Event c) -> SF a b
+restartOn sf sfc = switch (sf &&& sfc)
+                          (\_ -> restartOn sf sfc)
+
 -- * Objects / collisions auxiliary function
-collisionMask :: String -> (String -> Bool) -> Objects.Collisions -> Objects.Collisions
-collisionMask cId pred cs =
-  map Collision $
-   filter (any (pred . fst)) $
-     filter (any ((== cId).fst)) $
-       map collisionData cs
+collisionMask :: Eq id
+              => id -> (id -> Bool) -> Collisions.Collisions id -> Collisions.Collisions id
+collisionMask cId mask = onCollisions ( filter (any (mask . fst))
+                                      . filter (any ((== cId).fst))
+                                      )
+
+ where onCollisions :: ([[(id, Vel2D)]]         -> [[(id, Vel2D)]])
+                    -> Collisions.Collisions id -> Collisions.Collisions id
+       onCollisions f = map Collision . f . map collisionData
+
