@@ -219,27 +219,37 @@ stickyDeath False = constant (Event ())
 
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall size bid p0 v0 = ListSF $ proc i -> do
-  t         <- localTime                   -< ()
-  bo        <- bouncingBall size bid p0 v0 -< i
-  click     <- edge <<< arr (ballCollidedWithFire bid) -< collisions i -- controllerClick (userInput i)
-  let tooSmall    = size <= (ballWidth / 8)
-      shouldSplit = isEvent click
 
-  let offspringSize = size / 2
+  -- Default, just bouncing behaviour
+  bo <- bouncingBall size bid p0 v0 -< i
 
-  let offspringIDL = (bid ++ show t ++ "L") -- Should be unique or collisions won't work
-      offspringIDR = (bid ++ show t ++ "R") -- Should be unique or collisions won't work
-      bpos = physObjectPos bo
+  -- Hit fire? If so, it should split
+  click <- edge <<^ ballCollidedWithFire bid -< collisions i
+  let shouldSplit = isEvent click
+
+  -- We need two unique IDs so that collisions work
+  t <- localTime -< ()
+  let offspringIDL = bid ++ show t ++ "L"
+      offspringIDR = bid ++ show t ++ "R"
+
+  -- Position and velocity of new offspring
+  let bpos = physObjectPos bo
       bvel = physObjectPos bo
       ovel = (\(vx,vy) -> (-vx, vy)) bvel
 
-      offspring = if (shouldSplit && not tooSmall)
-                   then [ splittingBall offspringSize offspringIDL bpos bvel
-                        , splittingBall offspringSize offspringIDR bpos ovel
-                        ]
-                   else []
+  -- Offspring size, unless this ball is too small to split
+  let tooSmall      = size <= (ballWidth / 8)
+  let offspringSize = size / 2
 
-      dead = shouldSplit -- && tooSmall
+  -- Calculate offspring, if any
+  let offspringL = splittingBall offspringSize offspringIDL bpos bvel
+      offspringR = splittingBall offspringSize offspringIDR bpos ovel
+      offspring  = if shouldSplit && not tooSmall
+                    then [ offspringL, offspringR ]
+                    else []
+
+  -- If it splits, we just remove this one
+  let dead = shouldSplit
 
   returnA -< (bo, dead, offspring)
 
