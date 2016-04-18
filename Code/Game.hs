@@ -159,11 +159,11 @@ playerName = "player"
 
 playerProgress :: Pos2D -> SF Controller (Pos2D, Vel2D)
 playerProgress p0 = proc (c) -> do
+  -- Obtain velocity based on state and input
   v <- repeatSF getVelocity PlayerStand -< c
-  let vtotal = playerSpeed *^ v         -- Subtract resistance from velocity
-                                        -- (FIXME: make sure we don't move back")
-  p <- (p0 ^+^) ^<< integral -< vtotal  -- Add to initial position
-  returnA -< (p, vtotal)
+
+  p <- (p0 ^+^) ^<< integral -< v
+  returnA -< (p, v)
 
  where
 
@@ -171,9 +171,9 @@ playerProgress p0 = proc (c) -> do
    getVelocity pstate = stateVel pstate &&& stateChanged pstate
 
    stateVel :: PlayerState -> SF a Vel2D
-   stateVel PlayerLeft  = constant (-1, 0)
-   stateVel PlayerRight = constant (1,  0)
-   stateVel PlayerStand = constant (0,  0)
+   stateVel PlayerLeft  = constant (-playerSpeed, 0)
+   stateVel PlayerRight = constant (playerSpeed,  0)
+   stateVel PlayerStand = constant (0,            0)
 
    stateChanged :: PlayerState -> SF Controller (Event PlayerState)
    stateChanged oldState = arr playerState >>> ifDiff oldState
