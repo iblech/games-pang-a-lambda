@@ -26,7 +26,6 @@ circleAABBOverlap' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2)) =
        p222@(p222x, p222y) = p2 ^+^ s2
 
        -- Horizontal projection overlap
-       -- overlapX = r1 + w2 - (abs (p2x - p1x))
        overlapX =  (-r1, r1) `overlapSegment` (p2x - w2, p2x + w2)
        overlapY =  (-r1, r1) `overlapSegment` (p2y - h2, p2y + h2)
 
