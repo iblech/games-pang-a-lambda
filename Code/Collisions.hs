@@ -123,8 +123,8 @@ responseAABB2 (pos1, size1) (pos2, size2)
        toLeft  = x1 < x2
        above   = y1 < y2
        below   = y1 > y2
-       overlapx = max 0 (w1 + w2 - (abs (x1 - x2)))
-       overlapy = max 0 (h1 + h2 - (abs (y1 - y2)))
+       overlapx = max 0 (w1 + w2 - abs (x1 - x2))
+       overlapy = max 0 (h1 + h2 - abs (y1 - y2))
        overlap  = overlapx > 0 && overlapy > 0
        cx = if toRight then (overlapx, 0) else (-overlapx, 0)
        cy = if above then (0, -overlapy) else (0, overlapy)
@@ -132,7 +132,7 @@ responseAABB2 (pos1, size1) (pos2, size2)
 
 overlapsAABB2 :: AABB -> AABB -> Bool
 overlapsAABB2 (pos1, size1) (pos2, size2) =
-  (abs (x1 - x2) < w1 + w2) && (abs (y1 - y2) < h1 + h2)
+  abs (x1 - x2) < w1 + w2 && abs (y1 - y2) < h1 + h2
  where (x1,y1) = pos1
        (w1,h1) = size1
        (x2,y2) = pos2
