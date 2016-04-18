@@ -354,7 +354,7 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
 
                    -- Add initial velocity, and cap the result
                    v <- arr (uncurry (^+^)) -< (iv, vd)
-                   let vFinal = limitNorm v maxVNorm
+                   let vFinal = limitNorm v (maxVNorm size)
 
                    returnA -< vFinal
 

@@ -1,6 +1,5 @@
 module Constants where
 
-import Data.Int
 import Data.Word
 import Graphics.UI.SDL as SDL
 
@@ -20,8 +19,11 @@ velTrans :: Double
 velTrans = 1.00
 
 -- Max speed
-maxVNorm :: Double
-maxVNorm = 500
+maxVNorm :: Double -> Double
+maxVNorm n
+ | n > 15    = 800
+ | n > 10    = 600
+ | otherwise = 400
 
 ballWidth, ballHeight :: Double
 ballWidth  = 100
@@ -30,7 +32,7 @@ ballHeight = 100
 ballMargin :: Double
 ballMargin = 3
 
-ballSize :: Int16
+ballSize :: Integral a => a
 ballSize = 25
 
 -- Colors
@@ -47,7 +49,7 @@ playerWidth :: Double
 playerWidth = 30
 
 playerHeight :: Double
-playerHeight = 100
+playerHeight = 80
 
 playerRightColor :: Word32
 playerRightColor = 0xAA00AAFF
