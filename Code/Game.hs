@@ -234,7 +234,7 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
 
   -- Position and velocity of new offspring
   let bpos = physObjectPos bo
-      bvel = physObjectPos bo
+      bvel = physObjectVel bo
       ovel = (\(vx,vy) -> (-vx, vy)) bvel
 
   -- Offspring size, unless this ball is too small to split
