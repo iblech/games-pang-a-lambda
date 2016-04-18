@@ -9,7 +9,7 @@ import Physics.TwoDimensions.Dimensions
 -- import Physics.TwoDimensions.Shapes
 import FRP.Yampa.VectorSpace
 import Shapes
-import Data(pointX, pointY, rotateRespect, unrotateRespect, vectorWithMagnitude, minimumWith, swap)
+import Data(pointX, rotateRespect, unrotateRespect, vectorWithMagnitude, minimumWith, swap)
 
 circleAABBOverlap :: Circle -> AABB -> Bool
 circleAABBOverlap c@(cp,cr) (rp, rs) =
@@ -40,13 +40,13 @@ circleAABBOverlap' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2)) =
 
        projection ps = (minimum ps, maximum ps)
 
-       overlapP11 = (-r1, r1) `overlapSegment` (projection rotatedP211)
-       overlapP12 = (-r1, r1) `overlapSegment` (projection rotatedP212)
-       overlapP21 = (-r1, r1) `overlapSegment` (projection rotatedP221)
-       overlapP22 = (-r1, r1) `overlapSegment` (projection rotatedP222)
+       overlapP11 = (-r1, r1) `overlapSegment` projection rotatedP211
+       overlapP12 = (-r1, r1) `overlapSegment` projection rotatedP212
+       overlapP21 = (-r1, r1) `overlapSegment` projection rotatedP221
+       overlapP22 = (-r1, r1) `overlapSegment` projection rotatedP222
 
        -- overlapSegment (x01,x02) (x11, x12) = x11 <= x02 && x12 >= x01
-       overlapSegment (x01,x02) (x11, x12) = (min x02 x12) > (max x01 x11)
+       overlapSegment (x01,x02) (x11, x12) = min x02 x12 > max x01 x11
 
 -- rotateRespect (vx, vy) = rotateRespect' (normalize (vx, -vy))
 -- rotateRespect' (ct, st) (px, py) = (ct * px - st * py, st * px + ct * py)
@@ -75,8 +75,8 @@ responseCircleAABB' ((p1x,p1y),r1) (p2@(p2x, p2y), s2@(w2, h2))
 
        -- Horizontal projection overlap
        -- overlapX = r1 + w2 - (abs (p2x - p1x))
-       overlapX =  (\x -> (pointX x, x))      <$> (-r1, r1) `overlapSegment` (p2x - w2, p2x + w2)
-       overlapY =  (\x -> (pointX x, swap x)) <$> (-r1, r1) `overlapSegment` (p2y - h2, p2y + h2)
+       overlapX =  (pointX &&& id)   <$> (-r1, r1) `overlapSegment` (p2x - w2, p2x + w2)
+       overlapY =  (pointX &&& swap) <$> (-r1, r1) `overlapSegment` (p2y - h2, p2y + h2)
 
        rectangleVertices = [p211, p212, p221, p222]
 
