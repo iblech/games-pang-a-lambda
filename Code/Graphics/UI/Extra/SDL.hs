@@ -4,10 +4,14 @@ import Control.Monad
 import Data.IORef
 import Graphics.UI.SDL
 
+-- * Types
+
 -- Auxiliary SDL stuff
 isEmptyEvent :: Event -> Bool
 isEmptyEvent NoEvent = True
 isEmptyEvent _       = False
+
+-- * SDL-based clock
 
 initializeTimeRef :: IO (IORef Int)
 initializeTimeRef = do
@@ -39,7 +43,8 @@ updateTime timeRef newTime = do
 milisecsToSecs :: Int -> Double
 milisecsToSecs m = fromIntegral m / 1000
 
--- * SDL Extensions
+-- * Rendering
+
 renderAlignRight :: Surface -> Surface -> (Int, Int) -> IO ()
 renderAlignRight screen surface (x,y) = void $ do
   let rightMargin = surfaceGetWidth screen
