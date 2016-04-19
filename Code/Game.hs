@@ -428,14 +428,3 @@ restartOn :: SF a b -> SF a (Event c) -> SF a b
 restartOn sf sfc = switch (sf &&& sfc)
                           (\_ -> restartOn sf sfc)
 
--- * Objects / collisions auxiliary function
-collisionMask :: Eq id
-              => id -> (id -> Bool) -> Collisions.Collisions id -> Collisions.Collisions id
-collisionMask cId mask = onCollisions ( filter (any (mask . fst))
-                                      . filter (any ((== cId).fst))
-                                      )
-
- where onCollisions :: ([[(id, Vel2D)]]         -> [[(id, Vel2D)]])
-                    -> Collisions.Collisions id -> Collisions.Collisions id
-       onCollisions f = map Collision . f . map collisionData
-

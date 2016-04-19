@@ -207,3 +207,14 @@ inCollisionWith nm1 nm2 cs = any both cs
             any ((== nm1) . fst) nmvs
             && any ((== nm2) . fst) nmvs
 
+-- * Apply an ID-based collision mask
+collisionMask :: Eq id
+              => id -> (id -> Bool) -> Collisions id -> Collisions id
+collisionMask cId mask = onCollisions ( filter (any (mask . fst))
+                                      . filter (any ((== cId).fst))
+                                      )
+
+ where onCollisions :: ([[(id, Vel2D)]] -> [[(id, Vel2D)]])
+                    -> Collisions id    -> Collisions id
+       onCollisions f = map Collision . f . map collisionData
+
