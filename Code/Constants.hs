@@ -3,6 +3,9 @@ module Constants where
 import Data.Word
 import Graphics.UI.SDL as SDL
 
+gameName :: String
+gameName = "Break-a-ball"
+
 width :: Double
 width  = 1024
 height :: Double

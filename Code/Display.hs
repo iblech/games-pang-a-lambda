@@ -46,7 +46,7 @@ initializeDisplay =
 initGraphs :: Resources -> IO ()
 initGraphs _res = do
   screen <- SDL.setVideoMode (round width) (round height) 32 [SWSurface]
-  SDL.setCaption "Voldemort" ""
+  SDL.setCaption gameName ""
 
   -- Important if we want the keyboard to work right (I don't know
   -- how to make it work otherwise)
