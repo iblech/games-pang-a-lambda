@@ -36,7 +36,7 @@ type Collisions k = [Collision k]
 
 -- | A collision is a list of objects that collided, plus their velocities as
 -- modified by the collision.
--- 
+--
 -- Take into account that the same object could take part in several
 -- simultaneous collitions, so these velocities should be added (per object).
 data Collision k = Collision
@@ -50,7 +50,7 @@ detectCollision obj1 obj2
   = case (physObjectShape obj1, physObjectShape obj2) of
       (Circle _ _, Circle _ _) ->
          if vrn < 0
-           then (Just response)
+           then Just response
            else Nothing
       _ -> Just response
   | otherwise = Nothing
@@ -88,7 +88,7 @@ correctVel _p1 _p2 (v1x,v1y) _          (CollisionSide  BottomSide) e = (e * v1x
 correctVel _p1 _p2 (v1x,v1y) _          (CollisionSide  LeftSide)   e = (e * ensurePos v1x, e * v1y)
 correctVel _p1 _p2 (v1x,v1y) _          (CollisionSide  RightSide)  e = (e * ensureNeg v1x, e * v1y)
 -- General case
-correctVel p1 p2 (v1x,v1y) (v2x, v2y) (CollisionAngle _) e = (((v1x, v1y) ^+^ ((e * j) *^ colNormal)))
+correctVel p1 p2 (v1x,v1y) (v2x, v2y) (CollisionAngle _) e = (v1x, v1y) ^+^ ((e * j) *^ colNormal)
   where colNormal = normalize (p1 ^-^ p2)
         relativeV = (v1x,v1y) ^-^ (v2x,v2y)
         vrn       = relativeV `dot` colNormal
@@ -121,7 +121,7 @@ correctVel p1 p2 (v1x,v1y) (v2x, v2y) (CollisionAngle _) e = (((v1x, v1y) ^+^ ((
 --   one collieded with to facilitate impl. of "inCollisionWith".
 --
 changedVelocity :: Eq n => n -> Collisions n -> Maybe Vel2D
-changedVelocity name cs = 
+changedVelocity name cs =
     case concatMap (filter ((== name) . fst) . collisionData) cs of
         [] -> Nothing
         -- vs -> Just (foldl (^+^) (0,0) (map snd vs))
