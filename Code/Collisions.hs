@@ -123,25 +123,3 @@ overlapsAABB2 (pos1, size1) (pos2, size2) =
        (w1,h1) = size1
        (x2,y2) = pos2
        (w2,h2) = size2
-
-overlapsCircle2 :: Circle -> Circle -> Bool
-overlapsCircle2 (pos1, rad1) (pos2, rad2) =
-  dist <= rad1 + rad2 + 1
- where (x1,y1) = pos1
-       (x2,y2) = pos2
-       dx      = x1 - x2
-       dy      = y1 - y2
-       dist    = sqrt (dx ** 2 + dy ** 2)
-
-responseCircle2 :: Circle -> Circle -> Maybe Pos2D
-responseCircle2 (pos1, rad1) (pos2, rad2)
- | overlapr >= 1 = Just (vectorWithMagnitude (pos1 ^-^ pos2) overlapr)
- | otherwise     = Nothing
- where (x1,y1) = pos1
-       (x2,y2) = pos2
-       dx      = x1 - x2
-       dy      = y1 - y2
-       dist    = sqrt (dx ** 2 + dy ** 2)
-       (x1,y1) ^+^ (x2,y2) = (x1+x2, y1+y2)
-       (x1,y1) ^-^ (x2,y2) = (x1-x2, y1-y2)
-       overlapr = rad1 + rad2 - dist
