@@ -196,7 +196,7 @@ fire (x0, y0) sticky = ListSF $ proc _ -> do
   let y = max 0 yT
 
   -- Delay death if the fire is "sticky"
-  hit <- switch (constant noEvent &&& (arr (\y -> y <= 0) >>> edge))
+  hit <- switch (constant noEvent &&& (arr (<= 0) >>> edge))
                 (\_ -> stickyDeath sticky)
       -< y
   let dead = isEvent hit
