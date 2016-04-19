@@ -94,24 +94,24 @@ handleEvent :: Controller -> SDL.Event -> Controller
 handleEvent c e =
   case e of
     MouseMotion x y _ _                      -> c { controllerPos        = (fromIntegral x, fromIntegral y)}
-    MouseButtonDown _ _ ButtonLeft           -> c { controllerClick      = True }
-    MouseButtonUp   _ _ ButtonLeft           -> c { controllerClick      = False}
-    KeyDown (Keysym { symKey = SDLK_LEFT })  -> c { controllerLeft       = True  }
-    KeyUp   (Keysym { symKey = SDLK_LEFT })  -> c { controllerLeft       = False }
+    MouseButtonDown _ _ ButtonLeft           -> c { controllerClick      = True  }
+    MouseButtonUp   _ _ ButtonLeft           -> c { controllerClick      = False }
+    KeyDown (Keysym { symKey = SDLK_LEFT  }) -> c { controllerLeft       = True  }
+    KeyUp   (Keysym { symKey = SDLK_LEFT  }) -> c { controllerLeft       = False }
     KeyDown (Keysym { symKey = SDLK_RIGHT }) -> c { controllerRight      = True  }
     KeyUp   (Keysym { symKey = SDLK_RIGHT }) -> c { controllerRight      = False }
-    KeyUp (Keysym { symKey = SDLK_p })       -> c { controllerPause      = not (controllerPause c) }
-    KeyUp (Keysym { symKey = SDLK_f })       -> c { controllerFullscreen = not (controllerFullscreen c) }
-    KeyDown (Keysym { symKey = SDLK_w })     -> c { controllerSuperSlow  = True  }
-    KeyUp   (Keysym { symKey = SDLK_w })     -> c { controllerSuperSlow  = False }
-    KeyDown (Keysym { symKey = SDLK_s })     -> c { controllerSlow       = True  }
-    KeyUp   (Keysym { symKey = SDLK_s })     -> c { controllerSlow       = False }
-    KeyDown (Keysym { symKey = SDLK_x })     -> c { controllerFast       = True  }
-    KeyUp   (Keysym { symKey = SDLK_x })     -> c { controllerFast       = False }
-    KeyDown (Keysym { symKey = SDLK_h })     -> c { controllerStop       = True  }
-    KeyUp   (Keysym { symKey = SDLK_h })     -> c { controllerStop       = False }
+    KeyUp   (Keysym { symKey = SDLK_p     }) -> c { controllerPause      = not (controllerPause c)      }
+    KeyUp   (Keysym { symKey = SDLK_f     }) -> c { controllerFullscreen = not (controllerFullscreen c) }
+    KeyDown (Keysym { symKey = SDLK_w     }) -> c { controllerSuperSlow  = True  }
+    KeyUp   (Keysym { symKey = SDLK_w     }) -> c { controllerSuperSlow  = False }
+    KeyDown (Keysym { symKey = SDLK_s     }) -> c { controllerSlow       = True  }
+    KeyUp   (Keysym { symKey = SDLK_s     }) -> c { controllerSlow       = False }
+    KeyDown (Keysym { symKey = SDLK_x     }) -> c { controllerFast       = True  }
+    KeyUp   (Keysym { symKey = SDLK_x     }) -> c { controllerFast       = False }
+    KeyDown (Keysym { symKey = SDLK_h     }) -> c { controllerStop       = True  }
+    KeyUp   (Keysym { symKey = SDLK_h     }) -> c { controllerStop       = False }
     KeyDown (Keysym { symKey = SDLK_SPACE }) -> c { controllerClick      = True  }
-    KeyUp (Keysym { symKey = SDLK_SPACE })   -> c { controllerClick      = False }
+    KeyUp   (Keysym { symKey = SDLK_SPACE }) -> c { controllerClick      = False }
     KeyDown (Keysym { symKey = SDLK_ESCAPE}) -> c { controllerExit       = True  }
     _                                        -> c
 
