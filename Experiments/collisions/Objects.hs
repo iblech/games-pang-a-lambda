@@ -40,7 +40,7 @@ data ObjectKind = Ball Double -- radius
 
 -- Partial function. Object has size.
 objectTopLevelCorner :: Object -> Pos2D
-objectTopLevelCorner object = objectPos object ^-^ (half (objectSize object))
+objectTopLevelCorner object = objectPos object ^-^ half (objectSize object)
   where half = let h = (/2) in (h *** h)
 
 -- Partial function!
