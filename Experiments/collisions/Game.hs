@@ -243,14 +243,14 @@ objSideBottom = objWall "bottomWall" BottomSide (0, gameHeight)
 -- | Generic wall builder, given a name, a side and its base
 -- position.
 objWall :: ObjectName -> Side -> Pos2D -> ObjectSF
-objWall name side pos = proc (ObjectInput ci cs) -> do
-   returnA -< (Object { objectName           = name
-                      , objectKind           = Side side
-                      , objectPos            = pos
-                      , objectVel            = (0,0)
-                      , canCauseCollisions   = False
-                      , collisionEnergy      = 0
-                      })
+objWall name side pos = arr $ \(ObjectInput ci cs) ->
+  Object { objectName           = name
+         , objectKind           = Side side
+         , objectPos            = pos
+         , objectVel            = (0,0)
+         , canCauseCollisions   = False
+         , collisionEnergy      = 0
+         }
 
 -- * Auxiliary FRP stuff
 maybeToEvent :: Maybe a -> Event a
