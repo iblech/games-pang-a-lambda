@@ -5,15 +5,14 @@
 -- between shapes.
 module Physics.TwoDimensions.Collisions where
 
-import Collisions
-import Shapes
-import Control.Monad
 import Data.Extra.Num
 import Data.Maybe
 import FRP.Yampa.VectorSpace
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects
 import Physics.TwoDimensions.Shapes
+
+import Collisions
 
 -- * Collision points
 data CollisionPoint = CollisionSide  Side
