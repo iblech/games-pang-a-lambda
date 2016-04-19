@@ -54,13 +54,13 @@ initializeInputDevices :: IO ControllerRef
 initializeInputDevices = do
   nr <- newIORef defaultInfo
   return $ ControllerRef (nr, sdlGetController)
- where defaultInfo = Controller (0,0) False False        -- Position and direction
-                                      False              -- Fire
-                                      False              -- Stop balls
-                                      False              -- Pause
-                                      False              -- Exit
-                                      False False False  -- Speed control
-                                      False              -- Fullscreen
+ where defaultInfo = Controller (0,0) False False  -- Position and direction
+                                False              -- Fire
+                                False              -- Stop balls
+                                False              -- Pause
+                                False              -- Exit
+                                False False False  -- Speed control
+                                False              -- Fullscreen
 
 -- | Sense from the controller, providing its current
 -- state. This should return a new Controller state
