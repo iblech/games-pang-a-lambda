@@ -10,7 +10,6 @@ module GameState where
 
 -- import FRP.Yampa as Yampa
 
-import Debug.Trace
 import Objects
 import FRP.Yampa (Time)
 
