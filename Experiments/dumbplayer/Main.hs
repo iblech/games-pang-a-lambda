@@ -127,13 +127,13 @@ drawPlayer surface (playerX, playerY) = do
 -- |  Moves by default using playerProgress, unless the player is
 -- slowing down and barely moving, in which case we discard any
 -- remanent velocity and reinitiate the player from the new position.
-player :: (Double, Double) -> SF (Controller) (Double, Double)
+player :: (Double, Double) -> SF Controller (Double, Double)
 player p0 = switch (playerProgress p0 >>> (arr fst &&& isTooSmall)) player
  where isTooSmall :: SF ((Double, Double), (Double, Double)) (Yampa.Event (Double, Double))
        isTooSmall = proc (pos,diffV) -> do
            derivV <- derivative -< diffV
            returnA -< if shouldStop diffV derivV
-                         then (Yampa.Event pos)
+                         then Yampa.Event pos
                          else Yampa.NoEvent
 
 shouldStop :: (Double, Double) -> (Double, Double) -> Bool
