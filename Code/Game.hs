@@ -254,6 +254,7 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
 
   returnA -< (bo, dead, offspring)
 
+ballCollidedWithFire :: ObjectName -> Objects.Collisions -> Bool
 ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
 
 -- A bouncing ball moves freely until there is a collision, then bounces and
