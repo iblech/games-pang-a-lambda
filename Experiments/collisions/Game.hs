@@ -203,15 +203,13 @@ freeBall name p0 v0 = proc (ObjectInput ci cs) -> do
   -- module)
   p <- (p0 ^+^) ^<< integral -< v
 
-  let obj = Object { objectName           = name
-                   , objectKind           = Ball ballWidth
-                   , objectPos            = p
-                   , objectVel            = v
-                   , canCauseCollisions   = True
-                   , collisionEnergy      = 1
-                   }
-
-  returnA -< obj
+  returnA -< Object { objectName           = name
+                    , objectKind           = Ball ballWidth
+                    , objectPos            = p
+                    , objectVel            = v
+                    , canCauseCollisions   = True
+                    , collisionEnergy      = 1
+                    }
 
 -- *** Walls
 
