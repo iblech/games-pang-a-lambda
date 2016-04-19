@@ -71,13 +71,3 @@ minimumWith' f mn (a:as) = minimumWith' f mn' as
  where mn' = if f mn < f a then mn else a
 
 swap (a,b) = (b,a)
-
-
-updateIORef :: IORef a -> (a -> a) -> IO a
-updateIORef ioref f = modifyIORef ioref f >> readIORef ioref
-
-updateIORefM :: IORef a -> (a -> IO a) -> IO a
-updateIORefM ioref f = do
-  v <- f =<< readIORef ioref
-  writeIORef ioref v
-  return v
