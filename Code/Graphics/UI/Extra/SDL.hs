@@ -1,5 +1,6 @@
 module Graphics.UI.Extra.SDL where
 
+import Control.Monad
 import Data.IORef
 import Data.Maybe (isNothing)
 import Graphics.UI.SDL as SDL
@@ -38,3 +39,12 @@ updateTime timeRef newTime = do
 
 milisecsToSecs :: Int -> Double
 milisecsToSecs m = fromIntegral m / 1000
+
+-- * SDL Extensions
+renderAlignRight :: Surface -> Surface -> (Int, Int) -> IO ()
+renderAlignRight screen surface (x,y) = void $ do
+  let rightMargin = SDL.surfaceGetWidth screen
+      w           = SDL.surfaceGetWidth  surface
+      h           = SDL.surfaceGetHeight surface
+      rect        = SDL.Rect (rightMargin - x - w) y w h
+  SDL.blitSurface surface Nothing screen (Just rect)
