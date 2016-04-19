@@ -182,14 +182,14 @@ player = ListSF $ proc (Controller p f1 f2) -> do
 
   returnA -< (this, False, allArrows)
 
- where initialPos = (fromIntegral width/2, fromIntegral height/2)
+ where initialPos = (fromIntegral width / 2, fromIntegral height / 2)
 
 -- | This produces bullets that die when they hit the top of the screen.
 -- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
 -- while before they die.
 fire :: (Double, Double) -> Bool -> ListSF Controller Object
 fire (x0, y0) sticky = ListSF $ proc _ -> do
-  let v0 = (-10)
+  let v0 = -10
 
   -- Calculate tip of arrow
   yT <- (y0+) ^<< integral -< v0
