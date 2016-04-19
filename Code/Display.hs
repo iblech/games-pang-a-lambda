@@ -66,7 +66,7 @@ render resources shownState = do
   bgColor <- mapRGB format 0x37 0x16 0xB4
   fillRect screen Nothing bgColor
 
-  mapM_ (paintObject screen resources ) $ gameObjects shownState
+  mapM_ (paintObject screen resources) $ gameObjects shownState
 
   displayInfo screen resources (gameInfo shownState)
 
