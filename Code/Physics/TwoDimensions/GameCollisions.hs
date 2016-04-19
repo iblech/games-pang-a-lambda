@@ -13,7 +13,7 @@ module Physics.TwoDimensions.GameCollisions where
 
 import           Data.Foldable
 import           Prelude   hiding (concatMap)
-import           Data.List hiding (toList, concatMap)
+import           Data.List hiding (concatMap)
 import           Data.Maybe
 import           Physics.TwoDimensions.Collisions
 import qualified Physics.TwoDimensions.Collisions      as C
