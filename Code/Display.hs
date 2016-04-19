@@ -28,15 +28,13 @@ loadResources = do
   -- Load the fonts we need
   let gameFont = "data/lacuna.ttf"
   font  <- TTF.openFont gameFont 32 -- 32: fixed size?
-  let myFont = font
 
   -- Load the fonts we need
   let gameFont = "data/lacuna.ttf"
   font2  <- TTF.openFont gameFont 8 -- 32: fixed size?
-  let myFont2 = font2
 
   -- Return all resources (just the font)
-  return $ Resources myFont myFont2
+  return $ Resources font font2
 
 initializeDisplay :: IO ()
 initializeDisplay =
