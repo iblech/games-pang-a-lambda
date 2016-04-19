@@ -9,7 +9,7 @@ import Physics.TwoDimensions.Dimensions
 import FRP.Yampa.VectorSpace
 import Shapes
 import Data ( pointX, rotateRespect, unrotateRespect
-            , vectorWithMagnitude, minimumWith, swap
+            , minimumWith, swap
             )
 
 circleAABBOverlap :: Circle -> AABB -> Bool
