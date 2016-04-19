@@ -95,7 +95,7 @@ initGraphs = do
   SDL.enableUnicode True
 
 display :: ((Double, Double),(Double, Double)) -> IO()
-display ((boxY,_), (playerX, playerY)) = do 
+display ((boxY,_), (playerX, playerY)) = do
   -- Obtain surface
   screen <- getVideoSurface
 
@@ -137,8 +137,8 @@ player p0 = switch (playerProgress p0 >>> (arr fst &&& isTooSmall)) player
                          else Yampa.NoEvent
 
 shouldStop :: (Double, Double) -> (Double, Double) -> Bool
-shouldStop (dx, dy) (diffVX, diffVY) = 
-  abs dx < margin && abs dy < margin                -- Small movement 
+shouldStop (dx, dy) (diffVX, diffVY) =
+  abs dx < margin && abs dy < margin                -- Small movement
   && sign dx * diffVX <= 0 && diffVY * sign dy <= 0 -- Slowing down
   && (abs dy > 0 || abs dx > 0)                     -- But moving (break in switch loop)
  where margin = 0.1
@@ -167,4 +167,4 @@ sign :: Double -> Double
 sign d | d < 0     = -1
        | otherwise = 1
 
-initialPos = ((fromIntegral width/2), (fromIntegral height/2))
+initialPos = (fromIntegral width/2, fromIntegral height/2)
