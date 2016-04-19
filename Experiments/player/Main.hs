@@ -21,7 +21,7 @@ main = do
                 -- print (mInput)
                 return (dtSecs, Just mInput)
              )
-             (\_ e -> display (e) >> return False)
+             (\_ e -> display e >> return False)
              (dlSwitch [player] >>> arr composeWorld)
 
 -- | Updates the time in an IO Ref and returns the time difference
