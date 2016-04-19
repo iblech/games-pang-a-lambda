@@ -212,6 +212,7 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
    fireHitCeiling = arr (> height) >>> edge
    fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
 
+stickyDeath :: Bool -> SF a (Event ())
 stickyDeath True  = after 30 ()
 stickyDeath False = constant (Event ())
 
