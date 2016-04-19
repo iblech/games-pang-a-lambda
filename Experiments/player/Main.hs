@@ -145,7 +145,7 @@ data World = World
 composeWorld :: [Object] -> World
 composeWorld objs = World pl fs
  where pl = listToMaybe $ mapMaybe objectPlayer objs
-       fs = catMaybes $ map objectFire objs
+       fs = mapMaybe objectFire objs
 
 objectPlayer :: Object -> Maybe Player
 objectPlayer (ObjectPlayer pl) = Just pl
