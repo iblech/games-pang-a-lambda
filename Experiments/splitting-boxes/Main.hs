@@ -109,8 +109,8 @@ spike m = spikeBool m >>> edge
 -- reaches 0.
 resetCounter :: Int -> SF () Int
 resetCounter m = loopPre m $ arr (snd >>> decR m >>> dup)
- where decR m n = if n == 0 then m else (n-1)
-       dup  x   = (x,x)
+ where decR m n = if n == 0 then m else n - 1
+       dup  x   = (x, x)
 
 -- Version of list splitting that works in traditional Yampa
 -- inCirclesL' ips = inCirclesL ips >>> arr (map fst)
