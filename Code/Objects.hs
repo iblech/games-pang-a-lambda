@@ -10,7 +10,6 @@ import FRP.Yampa.VectorSpace
 import qualified Physics.TwoDimensions.Collisions      as C
 import           Physics.TwoDimensions.Dimensions
 import           Physics.TwoDimensions.PhysicalObjects
-import qualified Physics.TwoDimensions.PhysicalObjects as PO
 import           Physics.TwoDimensions.Shapes
 
 import Constants
