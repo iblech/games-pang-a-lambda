@@ -118,6 +118,7 @@ initialObjects level =
   , inertSF objSideBottom
   ]
   ++ objEnemies level
+  ++ blocks     level
   ++ objPlayers
 
 -- ** Enemies
@@ -129,6 +130,21 @@ objEnemies 1 =
   , splittingBall ballMedium "ballEnemy2" (3*width/4, 300) (360, -350) ]
 objEnemies n =
   [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
+
+blocks :: Int -> [ListSF ObjectInput Object]
+blocks n = [ objBlock "block1" (200, 200) (100, 50) ]
+
+-- | Generic block builder, given a name, a size and its base
+-- position.
+objBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
+objBlock name pos size = ListSF $ constant
+  (Object { objectName           = name
+          , objectKind           = Block size
+          , objectPos            = pos
+          , objectVel            = (0,0)
+          , canCauseCollisions   = False
+          , collisionEnergy      = 0
+          }, False, [])
 
 -- ** Enemy sizes
 ballGiant  = ballWidth

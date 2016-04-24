@@ -44,8 +44,8 @@ data ObjectKind = Ball   Double -- radius
                 | Player PlayerState
                 | Side   Side
                 | Projectile
+                | Block Size2D
                 -- | PowerUp PowerUp
-                -- | Block Size
   deriving (Show,Eq)
 
 data PlayerState = PlayerRight
@@ -53,16 +53,12 @@ data PlayerState = PlayerRight
                  | PlayerStand
   deriving (Eq, Show)
 
--- Partial function. Object has size.
-objectTopLevelCorner :: Object -> Pos2D
-objectTopLevelCorner object = objectPos object ^-^ half (objectSize object)
-  where half = let h = (/2) in (h *** h)
-
 -- Partial function!
 objectSize :: Object -> Size2D
 objectSize object = case objectKind object of
   (Ball r)    -> let w = 2*r in (w, w)
   (Player {}) -> (playerWidth, playerHeight)
+  (Block s)   -> s
 
 instance PhysicalObject Object String Shape where
   physObjectPos       = objectPos
@@ -76,9 +72,9 @@ instance PhysicalObject Object String Shape where
 
 objShape :: Object -> Shape
 objShape obj = case objectKind obj of
-  -- Ball r -> Circle p r
-  Ball r -> Rectangle (px -r, py - r) (r*2, r*2)
-  Side s -> SemiPlane p s
-  Player _ -> Rectangle p (playerWidth, playerHeight)
-  Projectile -> Rectangle (px - 5, 0) (10, py)
+  Ball r        -> Circle p r
+  Side s        -> SemiPlane p s
+  Player _      -> Rectangle p (playerWidth, playerHeight)
+  Projectile    -> Rectangle (px - 5, 0) (10, py)
+  Block s@(w,h) -> Rectangle (px, py) s
  where p@(px,py) = objectPos obj
