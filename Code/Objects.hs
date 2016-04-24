@@ -34,6 +34,11 @@ data Object = Object { objectName           :: !ObjectName
                      }
  deriving (Show)
 
+isBall :: Object -> Bool
+isBall o = case objectKind o of
+  Ball _ -> True
+  _      -> False
+
 -- | The kind of object and any size properties.
 data ObjectKind = Ball   Double -- radius
                 | Player PlayerState

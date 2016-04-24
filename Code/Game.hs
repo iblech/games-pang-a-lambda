@@ -60,9 +60,22 @@ import ObjectSF
 -- there are no more levels ('outOfLevels'), in which case the player has won
 -- ('wonGame').
 wholeGame :: SF Controller GameState
-wholeGame = gamePlay initialObjects >>> composeGameState
- where composeGameState :: SF (Objects, Time) GameState
-       composeGameState = arr (second (`GameInfo` 0) >>> uncurry GameState)
+wholeGame = level 0
+
+level n = switch (playLevel 0 >>> (identity &&& outOfEnemies))
+                 (\_ -> level (n + 1))
+
+playLevel n =
+   gamePlay initialObjects >>> composeGameState
+    where composeGameState :: SF (Objects, Time) GameState
+          composeGameState = arr (second (`GameInfo` n) >>> uncurry GameState)
+
+outOfEnemies = arr outOfEnemies'
+outOfEnemies' gs | null balls = Event gs
+                 | otherwise  = NoEvent
+
+  where objs  = gameObjects gs
+        balls = filter isBall objs
 
 -- ** Game with partial state information
 
