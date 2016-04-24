@@ -71,3 +71,6 @@ playerSpeed = 200
 
 fireSpeed :: Double
 fireSpeed = 200
+
+initialLives :: Int
+initialLives = 5

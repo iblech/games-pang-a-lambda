@@ -39,9 +39,14 @@ isBall o = case objectKind o of
   Ball _ -> True
   _      -> False
 
+isPlayer :: Object -> Bool
+isPlayer o = case objectKind o of
+  Player {} -> True
+  _         -> False
+
 -- | The kind of object and any size properties.
 data ObjectKind = Ball   Double -- radius
-                | Player PlayerState
+                | Player PlayerState Int -- lives
                 | Side   Side
                 | Projectile
                 | Block Size2D
@@ -74,7 +79,7 @@ objShape :: Object -> Shape
 objShape obj = case objectKind obj of
   Ball r        -> Circle p r
   Side s        -> SemiPlane p s
-  Player _      -> Rectangle p (playerWidth, playerHeight)
+  Player {}     -> Rectangle p (playerWidth, playerHeight)
   Projectile    -> Rectangle (px - 5, 0) (10, py)
   Block s@(w,h) -> Rectangle (px, py) s
  where p@(px,py) = objectPos obj

@@ -60,15 +60,28 @@ import ObjectSF
 -- there are no more levels ('outOfLevels'), in which case the player has won
 -- ('wonGame').
 wholeGame :: SF Controller GameState
-wholeGame = level 0
+wholeGame = switch (level 0 >>> (identity &&& playerDead))
+                   (\_ -> wholeGame)
+
+playerDead :: SF GameState (Event ())
+playerDead = playerDead' ^>> edge
+
+playerDead' :: GameState -> Bool
+playerDead' gs
+ | null (filter isPlayer (gameObjects gs)) = True
+ | not (null (filter playerIsDead (gameObjects gs))) = True
+ | otherwise = False
+ where playerIsDead o = case objectKind o of
+           (Player _ l) -> l < 0
+           otherwise    -> False
 
 level n = switch (playLevel n >>> (identity &&& outOfEnemies))
                  (\_ -> level (n + 1))
 
 playLevel n =
-   gamePlay (initialObjects n) >>> composeGameState
-    where composeGameState :: SF (Objects, Time) GameState
-          composeGameState = arr (second (`GameInfo` n) >>> uncurry GameState)
+   gamePlay (initialObjects n) >>^ composeGameState
+    where composeGameState :: (Objects, Time) -> GameState
+          composeGameState = (second (`GameInfo` n) >>> uncurry GameState)
 
 outOfEnemies = arr outOfEnemies'
 outOfEnemies' gs | null balls = Event gs
@@ -155,10 +168,10 @@ ballSmall  = ballMedium / 2
 -- ** Player
 objPlayers :: [ListSF ObjectInput Object]
 objPlayers =
-  [ player playerName (320, 20) ]
+  [ player initialLives playerName (320, 20) ]
 
-player :: String -> Pos2D -> ListSF ObjectInput Object
-player name p0 = ListSF $ proc i -> do
+player :: Int -> String -> Pos2D -> ListSF ObjectInput Object
+player lives name p0 = ListSF $ proc i -> do
   (ppos, pvel) <- playerProgress p0 -< userInput i
   let state = playerState (userInput i)
 
@@ -172,13 +185,15 @@ player name p0 = ListSF $ proc i -> do
   let hitByBall = not $ null
                 $ collisionMask name ("ball" `isPrefixOf`)
                 $ collisions i
+
   dead <- isEvent ^<< edge -< hitByBall
 
-  let newPlayer   = [ player name p0 | dead ]
+  let newPlayer   = [ player (lives-1) name p0
+                    | dead  && lives > 0 ]
 
   -- Final player
   returnA -< (Object { objectName           = name
-                     , objectKind           = Player state
+                     , objectKind           = Player state lives
                      , objectPos            = ppos
                      , objectVel            = pvel
                      , canCauseCollisions   = True

@@ -105,7 +105,7 @@ paintObject screen resources object =
           (w,h)    = (round *** round) sz
       fillRect screen (Just (Rect x y w h)) (Pixel blockColor)
 
-    (Player state) -> do
+    (Player state _) -> do
       let (px,py)  = (\(u,v) -> (u, gameHeight - v - playerHeight)) (objectPos object)
       let (x,y)    = (round *** round) (px,py)
           (vx,vy)  = objectVel object
