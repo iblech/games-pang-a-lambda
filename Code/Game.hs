@@ -130,9 +130,10 @@ objEnemies 1 =
 objEnemies n =
   [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
 
-ballGiant = ballWidth
-ballBig   = ballGiant / 2
-ballMedium = ballBig / 2
+-- ** Enemy sizes
+ballGiant  = ballWidth
+ballBig    = ballGiant  / 2
+ballMedium = ballBig    / 2
 ballSmall  = ballMedium / 2
 
 -- ** Player
