@@ -62,11 +62,11 @@ import ObjectSF
 wholeGame :: SF Controller GameState
 wholeGame = level 0
 
-level n = switch (playLevel 0 >>> (identity &&& outOfEnemies))
+level n = switch (playLevel n >>> (identity &&& outOfEnemies))
                  (\_ -> level (n + 1))
 
 playLevel n =
-   gamePlay initialObjects >>> composeGameState
+   gamePlay (initialObjects n) >>> composeGameState
     where composeGameState :: SF (Objects, Time) GameState
           composeGameState = arr (second (`GameInfo` n) >>> uncurry GameState)
 
@@ -109,21 +109,31 @@ gamePlay objs = loopPre [] $
 -- * Game objects
 --
 -- | Objects initially present: the walls, the ball, the player and the blocks.
-initialObjects :: [ListSF ObjectInput Object]
-initialObjects =
+initialObjects :: Int -> [ListSF ObjectInput Object]
+initialObjects level =
   -- Walls
   [ inertSF objSideRight
   , inertSF objSideTop
   , inertSF objSideLeft
   , inertSF objSideBottom
   ]
-  ++ objEnemies
+  ++ objEnemies level
   ++ objPlayers
 
 -- ** Enemies
-objEnemies :: [ListSF ObjectInput Object]
-objEnemies =
+objEnemies :: Int -> [ListSF ObjectInput Object]
+objEnemies 0 =
   [ splittingBall ballWidth "ballEnemy1" (600, 300) (360, -350) ]
+objEnemies 1 =
+  [ splittingBall ballMedium "ballEnemy1" (width/4, 300)   (360, -350)
+  , splittingBall ballMedium "ballEnemy2" (3*width/4, 300) (360, -350) ]
+objEnemies n =
+  [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
+
+ballGiant = ballWidth
+ballBig   = ballGiant / 2
+ballMedium = ballBig / 2
+ballSmall  = ballMedium / 2
 
 -- ** Player
 objPlayers :: [ListSF ObjectInput Object]
