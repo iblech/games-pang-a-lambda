@@ -233,9 +233,10 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
   -- Delay death if the fire is "sticky"
   hit <- switch (never &&& fireHitCeiling) (\_ -> stickyDeath sticky) -< y
 
-  hitB <- arr (fireCollidedWithBall name) -< collisions i
+  hitBall  <- arr (fireCollidedWithBall  name) -< collisions i
+  hitBlock <- arr (fireCollidedWithBlock name) -< collisions i
 
-  let dead = isEvent hit || hitB
+  let dead = isEvent hit || hitBall || hitBlock
 
   let object = Object { objectName = name
                       , objectKind = Projectile
@@ -250,7 +251,8 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
  where
 
    fireHitCeiling = arr (> height) >>> edge
-   fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+   fireCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+   fireCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
 
 stickyDeath :: Bool -> SF a (Event ())
 stickyDeath True  = after 30 ()
