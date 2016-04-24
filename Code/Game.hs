@@ -62,7 +62,7 @@ import ObjectSF
 wholeGame :: SF Controller GameState
 wholeGame = gamePlay initialObjects >>> composeGameState
  where composeGameState :: SF (Objects, Time) GameState
-       composeGameState = arr (second GameInfo >>> uncurry GameState)
+       composeGameState = arr (second (`GameInfo` 0) >>> uncurry GameState)
 
 -- ** Game with partial state information
 

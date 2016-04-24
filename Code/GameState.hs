@@ -29,7 +29,9 @@ data GameState = GameState
 neutralGameState :: GameState
 neutralGameState = GameState
   { gameObjects = []
-  , gameInfo    = GameInfo 0
+  , gameInfo    = GameInfo 0 0
   }
 
-data GameInfo = GameInfo { gameTime :: Time }
+data GameInfo = GameInfo { gameTime  :: Time
+                         , gameLevel :: Int
+                         }
