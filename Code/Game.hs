@@ -152,10 +152,10 @@ objEnemies 1 =
   [ splittingBall ballMedium "ballEnemy1" (width/4, 300)   (360, -350)
   , splittingBall ballMedium "ballEnemy2" (3*width/4, 300) (360, -350) ]
 objEnemies 2 =
-  map ballLeft [1..6] ++ map ballRight [1..6]
+  map ballLeft [1..4] ++ map ballRight [1..4]
  where baseL = 20
        sep   = width / 20
-       baseR = width - (baseL  + 6 * sep)
+       baseR = width - (baseL  + 4 * sep)
 
        ballLeft n = splittingBall ballSmall ("ballEnemyL" ++ show n)
                          (baseL + n * sep, 100) (-200, -200)
