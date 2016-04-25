@@ -265,7 +265,7 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
 
  where
 
-   fireHitCeiling = arr (> height) >>> edge
+   fireHitCeiling = arr (>= height) >>> edge
    fireCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
    fireCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
 
