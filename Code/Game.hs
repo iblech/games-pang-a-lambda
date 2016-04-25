@@ -63,7 +63,7 @@ import ObjectSF
 -- there are no more levels ('outOfLevels'), in which case the player has won
 -- ('wonGame').
 wholeGame :: SF Controller GameState
-wholeGame = switch (level 3 >>> (identity &&& playerDead))
+wholeGame = switch (level 0 >>> (identity &&& playerDead))
                    (\_ -> wholeGame)
 
 playerDead :: SF GameState (Event ())
