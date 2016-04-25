@@ -300,10 +300,12 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
   let offspringIDL = bid ++ show t ++ "L"
       offspringIDR = bid ++ show t ++ "R"
 
+  let enforceYPositive (x,y) = (x, abs y)
+
   -- Position and velocity of new offspring
   let bpos = physObjectPos bo
-      bvel = physObjectVel bo
-      ovel = (\(vx,vy) -> (-vx, vy)) bvel
+      bvel = enforceYPositive $ physObjectVel bo
+      ovel = enforceYPositive $ (\(vx,vy) -> (-vx, vy)) bvel
 
   -- Offspring size, unless this ball is too small to split
   let tooSmall      = size <= (ballWidth / 8)
