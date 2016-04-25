@@ -59,46 +59,68 @@ import ObjectSF
 
 -- * General state transitions
 
--- | Run the game that the player can lose at ('canLose'), until ('switch')
--- there are no more levels ('outOfLevels'), in which case the player has won
--- ('wonGame').
+-- | Run the game that the player can lose at until ('switch') the player is
+-- completely dead, and then restart the game.
 wholeGame :: SF Controller GameState
 wholeGame = switch (level 0 >>> (identity &&& playerDead))
                    (\_ -> wholeGame)
 
+-- * Game over
+
+-- | Detect the death of a player by searching for it in the scene (SF).
 playerDead :: SF GameState (Event ())
 playerDead = playerDead' ^>> edge
 
+-- | Detect the death of a player by searching for it in the scene.
 playerDead' :: GameState -> Bool
 playerDead' gs = gamePlaying && dead
- where dead = null (filter isPlayer (gameObjects gs))
-            || not (null (filter playerIsDead (gameObjects gs)))
+ where
+   -- Dead in the game if not present, or if found dead
+   dead = null (filter isPlayer (gameObjects gs))
+       || not (null (filter playerIsDead (gameObjects gs)))
 
-       playerIsDead o = case objectKind o of
-           (Player _ lives _) -> lives < 0
-           otherwise          -> False
+   -- Player dead if it has no more lives left
+   playerIsDead o = case objectKind o of
+     (Player _ lives _) -> lives < 0
+     otherwise          -> False
 
-       gamePlaying = GamePlaying == gameStatus (gameInfo gs)
+   -- This is only defined when the game is in progress.
+   gamePlaying = GamePlaying == gameStatus (gameInfo gs)
 
-level n = switch (loadLevel n &&& after 2 ())
-                 (\_ -> myLevel n)
+-- | Show loading screen for 2 seconds, then move on to play
+-- the game.
+level :: Int -> SF Controller GameState
+level n = switch
+  (levelLoading n &&& after 2 ()) -- show loading screen for 2 seconds
+  (\_ -> levelLoaded n)
 
-myLevel n = switch (playLevel n >>> (identity &&& outOfEnemies))
-                   (\_ -> level (n + 1))
+-- | Play a level till completed, then move on to the next level.
+levelLoaded :: Int -> SF Controller GameState
+levelLoaded n = switch
+  (playLevel n >>> (identity &&& outOfEnemies))
+  (\_ -> level (n + 1))
 
-loadLevel n = constant (GameState [] (GameInfo 0 n GameLoading))
+-- | Produce a constant game state of loading a particular level.
+levelLoading :: Int -> SF a GameState
+levelLoading n = constant (GameState [] (GameInfo 0 n GameLoading))
 
-playLevel n =
-   gamePlay (initialObjects n) >>^ composeGameState
-    where composeGameState :: (Objects, Time) -> GameState
-          composeGameState (objs, t) = GameState objs (GameInfo t n GamePlaying)
+-- | Play one level indefinitely (it never ends or restarts).
+playLevel :: Int -> SF Controller GameState
+playLevel n = gamePlay (initialObjects n) >>^ composeGameState
+  where
+    -- Compose GameState output from 'gamePlay's output
+    composeGameState :: (Objects, Time) -> GameState
+    composeGameState (objs, t) = GameState objs (GameInfo t n GamePlaying)
 
+-- | Detect when there are no more enemies in the scene.
+outOfEnemies :: SF GameState (Event GameState)
 outOfEnemies = arr outOfEnemies'
-outOfEnemies' gs | null balls = Event gs
-                 | otherwise  = NoEvent
-
-  where objs  = gameObjects gs
-        balls = filter isBall objs
+ where
+   outOfEnemies' :: GameState -> (Event GameState)
+   outOfEnemies' gs | null balls = Event gs
+                    | otherwise  = NoEvent
+     where
+       balls = filter isBall (gameObjects gs)
 
 -- ** Game with partial state information
 
@@ -134,23 +156,33 @@ gamePlay objs = loopPre [] $
 -- | Objects initially present: the walls, the ball, the player and the blocks.
 initialObjects :: Int -> [ListSF ObjectInput Object]
 initialObjects level =
-  -- Walls
-  [ inertSF objSideRight
-  , inertSF objSideTop
-  , inertSF objSideLeft
-  , inertSF objSideBottom
-  ]
-  ++ objEnemies level
-  ++ blocks     level
-  ++ objPlayers
+  objEnemies level ++ blocks level ++ objPlayers ++ walls
+ where
+   walls = [ inertSF objSideRight
+           , inertSF objSideTop
+           , inertSF objSideLeft
+           , inertSF objSideBottom
+           ]
 
 -- ** Enemies
+
+-- | Defines the enemies depending on the level.
+--
+-- This function is paired with 'blocks', because there could be inconsistent
+-- initial positions in which blocks and enemies already overlap.
+--
+-- WARNING: All objects need different names, both at the beginning and during
+-- gameplay.
+
 objEnemies :: Int -> [ListSF ObjectInput Object]
+
 objEnemies 0 =
   [ splittingBall ballWidth "ballEnemy1" (600, 300) (360, -350) ]
+
 objEnemies 1 =
   [ splittingBall ballMedium "ballEnemy1" (width/4, 300)   (360, -350)
   , splittingBall ballMedium "ballEnemy2" (3*width/4, 300) (360, -350) ]
+
 objEnemies 2 =
   map ballLeft [1..4] ++ map ballRight [1..4]
  where baseL = 20
@@ -166,9 +198,55 @@ objEnemies 2 =
 objEnemies n =
   [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
 
+-- ** Blocks
+--
+-- Blocks are horizontal rectangles that /every/ other element collides
+-- with. They need not be static.
+
+-- | List of blocks depending on the level.
 blocks :: Int -> [ListSF ObjectInput Object]
-blocks 0 = [ objBlock "block1" (200, 55) (100, 50) ]
-blocks n = [ objBlock "block1" (200, 200) (100, 50) ]
+blocks 0 = [ objBlock    "block1" (200, 55)  (100, 50)               ]
+blocks 1 = [ movingBlock "block1" (400, 200) (100, 50) 200 10   0  0 ]
+blocks 2 = [ movingBlock "block1" (400, 200) (100, 50) 0    0 100 10 ]
+blocks 3 = [ movingBlock "block1" (324, 200) (100, 40) 200  6   0  0
+           , movingBlock "block2" (700, 200) (100, 40) 200  6 100 10
+           ]
+blocks n = [ objBlock    "block1" (200, 200) (100, 50) ]
+
+-- *** Moving blocks
+
+-- | A moving block with an initial position and size, and horizontal and
+-- vertical amplitude and periods. If an amplitude is /not/ zero, the
+-- block moves along that dimension using a periodic oscillator
+-- (see the SF 'osci').
+
+movingBlock :: String
+            -> Pos2D -> Size2D  -- Geometry
+            -> Double -> Double -- Horizontal oscillation amplitude and period
+            -> Double -> Double -- Vertical   oscillation amplitude and period
+            -> ListSF ObjectInput Object
+movingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
+  px' <- vx -< px
+  py' <- vy -< py
+  returnA -< (Object { objectName           = name
+                     , objectKind           = Block size
+                     , objectPos            = (px', py')
+                     , objectVel            = (0,0)
+                     , canCauseCollisions   = False
+                     , collisionEnergy      = 0
+                     }, False, [])
+
+ where
+
+   -- To avoid errors, we check that the amplitude is non-zero, otherwise
+   -- just pass the given position along.
+   vx :: SF Double Double
+   vx = if hAmp /= 0 then osci px hAmp hPeriod else identity
+
+   -- To avoid errors, we check that the amplitude is non-zero, otherwise
+   -- just pass the given position along.
+   vy :: SF Double Double
+   vy = if vAmp /= 0 then osci py vAmp vPeriod else identity
 
 -- | Generic block builder, given a name, a size and its base
 -- position.
@@ -578,3 +656,24 @@ restartOn :: SF a b -> SF a (Event c) -> SF a b
 restartOn sf sfc = switch (sf &&& sfc)
                           (\_ -> restartOn sf sfc)
 
+-- * Physics
+
+-- Thanks to Manuel Bärenz for this SF:
+-- osci x0 amp period = loopPre (x0 + amp) $ proc ((), x) -> do
+--   let acc = - (2.0*pi/period)^(2 :: Int) * (x - x0)
+--   v  <- integral -< acc
+--   pd <- integral -< v
+--   let x' = x0 + amp + pd
+--   returnA -< trace (show (acc, v, x, pd)) (x', x')
+
+-- Alternative implementation using rec that I think Henrik
+-- will like much more.
+osci x0 amp period = proc _ -> do
+
+  rec
+   let acc = - (2.0*pi/period)^(2 :: Int) * (x' - x0)
+   v  <- integral -< acc
+   pd <- integral -< v
+   let x' = x0 + amp + pd
+
+  returnA -< x'
