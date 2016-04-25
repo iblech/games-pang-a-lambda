@@ -193,17 +193,58 @@ objPlayers :: [ListSF ObjectInput Object]
 objPlayers =
   [ player initialLives playerName (320, 20) True ]
 
+-- ** Guns
+
+gun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+gun name = normalGun name
+  -- To switch between different kinds of guns
+  -- gun name = switch
+  --   (normalGun name &&& after 5 ())
+  --   (\_ -> multipleGun name)
+
+-- *** Normal gun, fires one shot at a time
+
+normalGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+normalGun name = switch (constant [] &&& gunFired name)
+                        (\fireLSF -> blockedGun name fireLSF)
+
+blockedGun name fsf = switch (([fsf] --> constant []) &&& fireDead fsf)
+                             (\_ -> normalGun name)
+
+fireDead fsf = proc (oi, _) -> do
+  (_, b, _) <- listSF fsf -< oi
+  justDied <- edge -< b
+  returnA -< justDied
+
+gunFired :: String -> SF (ObjectInput, Pos2D) (Event (ListSF ObjectInput Object))
+gunFired name = proc (i, ppos) -> do
+  -- Fire!!
+  newF1  <- edge -< controllerClick (userInput i)
+  uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
+
+  let newFire = fire uniqId (fst ppos, 0) False
+  returnA -< newF1 `tag` newFire
+
+eventToList :: Event a -> [ a ]
+eventToList NoEvent   = []
+eventToList (Event a) = [a]
+
+-- *** Normal gun, fires one shot at a time
+multipleGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+multipleGun name = eventToList ^<< gunFired name
+
 player :: Int -> String -> Pos2D -> Bool -> ListSF ObjectInput Object
 player lives name p0 vul = ListSF $ proc i -> do
   (ppos, pvel) <- playerProgress name p0 -< i
 
   let state = playerState (userInput i)
 
-  -- Fire!!
-  newF1  <- isEvent ^<< edge                          -< controllerClick (userInput i)
-  uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
-  let newF1Arrows = [ fire uniqId (fst ppos, 0) False
-                    | newF1 ]
+  -- newF1  <- isEvent ^<< edge                          -< controllerClick (userInput i)
+  -- uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
+  -- let newF1Arrows = [ fire uniqId (fst ppos, 0) False
+  --                   | newF1 ]
+
+  newF1Arrows <- gun name -< (i, ppos)
 
   -- Dead?
   let hitByBall = not $ null
