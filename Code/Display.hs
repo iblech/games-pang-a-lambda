@@ -140,7 +140,7 @@ paintObject screen resources time object =
 
     Projectile -> do
         let fireColor = Pixel playerRightColor
-            (x0,y0)   = (\(x,y) -> (x, height - y)) $ objectPos object
+            (x0,y0)   = (\(x,y) -> (x - 5, height - y)) $ objectPos object
             (dx, dy)  = (10, snd (objectPos object))
             (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)
         fillRect screen (Just (Rect x0' y0' dx' dy')) fireColor
