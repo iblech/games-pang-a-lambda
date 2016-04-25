@@ -235,11 +235,11 @@ playerProgress pid p0 = proc i -> do
 
   let collisionsWithBlocks = filter onlyBlocks (collisions i)
 
-      onlyBlocks (Collision cdata) = -- any ((pid ==)  . fst) cdata
-                                     -- &&
-                                       any (isBlockId . fst) cdata
+      onlyBlocks (Collision cdata) = any (playerCollisionElem . fst) cdata
 
-      isBlockId s = "Wall" `isSuffixOf` s || "block" `isPrefixOf` s
+      playerCollisionElem s = isBlockId s || isWallId s
+      isBlockId = ("block" `isPrefixOf`)
+      isWallId  = ("Wall" `isSuffixOf`)
 
   let ev = changedVelocity pid collisionsWithBlocks
       vc = fromMaybe v ev
