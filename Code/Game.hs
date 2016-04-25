@@ -609,10 +609,21 @@ restartOn sf sfc = switch (sf &&& sfc)
 -- * Physics
 
 -- Thanks to Manuel Bärenz for this SF:
-osci x0 amp period = loopPre (x0 + amp) $ proc ((), x) -> do
-  let acc = - (2.0*pi/period)^(2 :: Int) * (x - x0)
-  v  <- integral -< acc
-  pd <- integral -< v
-  let x' = x0 + amp + pd
-  returnA -< trace (show (acc, v, x, pd)) (x', x')
+-- osci x0 amp period = loopPre (x0 + amp) $ proc ((), x) -> do
+--   let acc = - (2.0*pi/period)^(2 :: Int) * (x - x0)
+--   v  <- integral -< acc
+--   pd <- integral -< v
+--   let x' = x0 + amp + pd
+--   returnA -< trace (show (acc, v, x, pd)) (x', x')
 
+-- Alternative implementation using rec that I think Henrik
+-- will like much more.
+osci x0 amp period = proc () -> do
+
+  rec
+   let acc = - (2.0*pi/period)^(2 :: Int) * (x' - x0)
+   v  <- integral -< acc
+   pd <- integral -< v
+   let x' = x0 + amp + pd
+
+  returnA -< x'
