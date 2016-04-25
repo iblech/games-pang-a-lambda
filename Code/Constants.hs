@@ -85,7 +85,7 @@ playerSpeed :: Double
 playerSpeed = 200
 
 fireSpeed :: Double
-fireSpeed = 200
+fireSpeed = 400
 
 initialLives :: Int
 initialLives = 5
