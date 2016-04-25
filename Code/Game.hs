@@ -63,7 +63,7 @@ import ObjectSF
 -- there are no more levels ('outOfLevels'), in which case the player has won
 -- ('wonGame').
 wholeGame :: SF Controller GameState
-wholeGame = switch (level 0 >>> (identity &&& playerDead))
+wholeGame = switch (level 3 >>> (identity &&& playerDead))
                    (\_ -> wholeGame)
 
 playerDead :: SF GameState (Event ())
@@ -167,8 +167,36 @@ objEnemies n =
   [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
 
 blocks :: Int -> [ListSF ObjectInput Object]
-blocks 0 = [ objBlock "block1" (200, 55) (100, 50) ]
-blocks n = [ objBlock "block1" (200, 200) (100, 50) ]
+blocks 0 = [ objBlock    "block1" (200, 55)  (100, 50)               ]
+blocks 1 = [ movingBlock "block1" (400, 200) (100, 50) 200 10   0  0 ]
+blocks 2 = [ movingBlock "block1" (400, 200) (100, 50) 0    0 100 10 ]
+blocks 3 = [ movingBlock "block1" (324, 200) (100, 40) 200  6   0  0
+           , movingBlock "block2" (700, 200) (100, 40) 200  6 100 10
+           ]
+blocks n = [ objBlock    "block1" (200, 200) (100, 50) ]
+
+-- Block that moves
+movingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
+  px' <- vx -< px
+  py' <- vy -< py
+  returnA -< (Object { objectName           = name
+                     , objectKind           = Block size
+                     , objectPos            = (px', py')
+                     , objectVel            = (0,0)
+                     , canCauseCollisions   = False
+                     , collisionEnergy      = 0
+                     }, False, [])
+
+ where
+
+   vx :: SF Double Double
+   vx = if hAmp /= 0 then ignore >>> osci px hAmp hPeriod else identity
+
+   vy :: SF Double Double
+   vy = if vAmp /= 0 then ignore >>> osci py vAmp vPeriod else identity
+
+   ignore :: SF a ()
+   ignore = constant ()
 
 -- | Generic block builder, given a name, a size and its base
 -- position.
@@ -577,4 +605,14 @@ repeatSF sf c = switch (sf c) (repeatSF sf)
 restartOn :: SF a b -> SF a (Event c) -> SF a b
 restartOn sf sfc = switch (sf &&& sfc)
                           (\_ -> restartOn sf sfc)
+
+-- * Physics
+
+-- Thanks to Manuel Bärenz for this SF:
+osci x0 amp period = loopPre (x0 + amp) $ proc ((), x) -> do
+  let acc = - (2.0*pi/period)^(2 :: Int) * (x - x0)
+  v  <- integral -< acc
+  pd <- integral -< v
+  let x' = x0 + amp + pd
+  returnA -< trace (show (acc, v, x, pd)) (x', x')
 
