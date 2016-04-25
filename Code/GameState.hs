@@ -29,9 +29,14 @@ data GameState = GameState
 neutralGameState :: GameState
 neutralGameState = GameState
   { gameObjects = []
-  , gameInfo    = GameInfo 0 0
+  , gameInfo    = GameInfo 0 0 GameLoading
   }
 
 data GameInfo = GameInfo { gameTime  :: Time
                          , gameLevel :: Int
+                         , gameStatus :: GameStatus
                          }
+
+data GameStatus = GamePlaying
+                | GameLoading
+ deriving (Eq, Show)

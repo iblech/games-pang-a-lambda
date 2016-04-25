@@ -35,11 +35,11 @@
 module Game (wholeGame) where
 
 -- External imports
+import Data.List
 import FRP.Yampa
 import FRP.Yampa.Switches
 
 -- General-purpose internal imports
-import Data.List
 import Data.Extra.VectorSpace
 import Physics.TwoDimensions.Collisions       as Collisions
 import Physics.TwoDimensions.Dimensions
@@ -67,21 +67,28 @@ playerDead :: SF GameState (Event ())
 playerDead = playerDead' ^>> edge
 
 playerDead' :: GameState -> Bool
-playerDead' gs
- | null (filter isPlayer (gameObjects gs)) = True
- | not (null (filter playerIsDead (gameObjects gs))) = True
- | otherwise = False
- where playerIsDead o = case objectKind o of
+playerDead' gs = gamePlaying && dead
+ where dead = null (filter isPlayer (gameObjects gs))
+            || not (null (filter playerIsDead (gameObjects gs)))
+
+       playerIsDead o = case objectKind o of
            (Player _ l) -> l < 0
            otherwise    -> False
 
-level n = switch (playLevel n >>> (identity &&& outOfEnemies))
-                 (\_ -> level (n + 1))
+       gamePlaying = GamePlaying == gameStatus (gameInfo gs)
+
+level n = switch (loadLevel n &&& after 2 ())
+                 (\_ -> myLevel n)
+
+myLevel n = switch (playLevel n >>> (identity &&& outOfEnemies))
+                   (\_ -> level (n + 1))
+
+loadLevel n = constant (GameState [] (GameInfo 0 n GameLoading))
 
 playLevel n =
    gamePlay (initialObjects n) >>^ composeGameState
     where composeGameState :: (Objects, Time) -> GameState
-          composeGameState = (second (`GameInfo` n) >>> uncurry GameState)
+          composeGameState (objs, t) = GameState objs (GameInfo t n GamePlaying)
 
 outOfEnemies = arr outOfEnemies'
 outOfEnemies' gs | null balls = Event gs

@@ -68,6 +68,8 @@ render resources shownState = do
 
   displayInfo screen resources (gameInfo shownState)
 
+  displayMessage screen resources (gameInfo shownState)
+
   -- Double buffering
   SDL.flip screen
 
@@ -137,9 +139,23 @@ paintObject screen resources object =
         fillRect screen (Just (Rect x0' y0' dx' dy')) fireColor
         return ()
 
+-- * Painting functions
+displayMessage :: Surface -> Resources -> GameInfo -> IO()
+displayMessage screen resources info = case gameStatus info of
+  GameLoading ->
+    printAlignCenter screen resources ("Level " ++ show (gameLevel info))
+  _ -> return ()
+
 -- * Render text with alignment
 printAlignRight :: Surface -> Resources -> String -> (Int, Int) -> IO ()
 printAlignRight screen resources msg (x,y) = void $ do
   let font = resFont resources
   message <- TTF.renderTextSolid font msg fontColor
   renderAlignRight screen message (x,y)
+
+-- * Render text with alignment
+printAlignCenter :: Surface -> Resources -> String -> IO ()
+printAlignCenter screen resources msg = void $ do
+  let font = resFont resources
+  message <- TTF.renderTextSolid font msg fontColor
+  renderAlignCenter screen message
