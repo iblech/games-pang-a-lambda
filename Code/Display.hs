@@ -60,14 +60,16 @@ render resources shownState = do
   -- Obtain surface
   screen <- getVideoSurface
 
-  let format = surfaceGetPixelFormat screen
-  bgColor <- mapRGB format 0x37 0x16 0xB4
-  fillRect screen Nothing bgColor
+  -- Clear BG
+  fillRect screen Nothing (Pixel backgroundColor)
 
+  -- Paint objects
   mapM_ (paintObject screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
+  -- Paint HUD
   displayInfo screen resources (gameInfo shownState)
 
+  -- Paint messages/popups (eg. "Paused", "Level 0", etc.)
   displayMessage screen resources (gameInfo shownState)
 
   -- Double buffering
@@ -139,11 +141,10 @@ paintObject screen resources time object =
         return ()
 
     Projectile -> do
-        let fireColor = Pixel playerRightColor
-            (x0,y0)   = (\(x,y) -> (x - 5, height - y)) $ objectPos object
+        let (x0,y0)   = (\(x,y) -> (x - 5, height - y)) $ objectPos object
             (dx, dy)  = (10, snd (objectPos object))
             (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)
-        fillRect screen (Just (Rect x0' y0' dx' dy')) fireColor
+        fillRect screen (Just (Rect x0' y0' dx' dy')) (Pixel fireColor)
         return ()
 
 -- * Painting functions

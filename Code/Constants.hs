@@ -40,10 +40,10 @@ ballSize = 25
 
 -- Colors
 fontColor :: SDL.Color
-fontColor = SDL.Color 228 228 228
+fontColor = SDL.Color 94 86 91
 
 ballColor :: Word32
-ballColor = 0xCC0011FF
+ballColor = 0xDD875FFF
 
 velColor  :: Word32
 velColor  = 0xCCBBFFFF
@@ -54,26 +54,32 @@ playerWidth = 30
 playerHeight :: Double
 playerHeight = 80
 
+fireColor :: Word32
+fireColor = 0xFFDDC34F
+
 playerRightColor :: Word32
-playerRightColor = 0xAA00AAFF
+playerRightColor = 0xFFD2D454
 
 playerLeftColor :: Word32
-playerLeftColor = 0x00AAAAFF
+playerLeftColor = 0xFFB2D454
 
 playerStandColor :: Word32
-playerStandColor = 0xAAAA00FF
+playerStandColor = 0xFFE5D454
 
 playerBlinkRightColor :: Word32
-playerBlinkRightColor = 0xAA00AAAA
+playerBlinkRightColor = 0x88D2D454
 
 playerBlinkLeftColor :: Word32
-playerBlinkLeftColor = 0x00AAAAAA
+playerBlinkLeftColor = 0x88B2D454
 
 playerBlinkStandColor :: Word32
-playerBlinkStandColor = 0xAAAA00AA
+playerBlinkStandColor = 0x88F2D454
+
+backgroundColor :: Word32
+backgroundColor = 0xFFEDE9CB
 
 blockColor :: Word32
-blockColor = 0xCAAC3DFF
+blockColor = 0xFF85AABC
 
 playerSpeed :: Double
 playerSpeed = 200
