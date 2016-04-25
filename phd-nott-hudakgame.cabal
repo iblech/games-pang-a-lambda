@@ -20,7 +20,7 @@ executable phd-nott-hudakgame-dumbplayer
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, SDL-gfx, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, SDL-gfx, Yampa
   hs-source-dirs:      Experiments/dumbplayer/
   default-language:    Haskell2010
 
@@ -28,7 +28,7 @@ executable phd-nott-hudakgame-arrowup
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, SDL-gfx, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, SDL-gfx, Yampa
   hs-source-dirs:      Experiments/arrowup/
   default-language:    Haskell2010
 
@@ -36,7 +36,7 @@ executable phd-nott-hudakgame-stickyarrow
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, SDL-gfx, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, SDL-gfx, Yampa
   hs-source-dirs:      Experiments/stickyarrowup/
   default-language:    Haskell2010
 
@@ -44,7 +44,7 @@ executable phd-nott-hudakgame-player
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, SDL-gfx, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, SDL-gfx, Yampa
   hs-source-dirs:      Experiments/player/
   default-language:    Haskell2010
 
@@ -91,7 +91,7 @@ executable phd-nott-hudakgame-circlingboxes
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, Yampa
   hs-source-dirs:      Experiments/circling-boxes/
   default-language:    Haskell2010
 
@@ -99,7 +99,7 @@ executable phd-nott-hudakgame-splittingboxes
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, Yampa
   hs-source-dirs:      Experiments/splitting-boxes/
   default-language:    Haskell2010
 
@@ -107,7 +107,7 @@ executable phd-nott-hudakgame-split
   main-is:             Main.hs
   -- other-modules:
   other-extensions:    Arrows
-  build-depends:       base >=4.7 && <4.9, SDL, Yampa
+  build-depends:       base >=4.6 && <4.9, SDL, Yampa
   hs-source-dirs:      Experiments/split/
   default-language:    Haskell2010
 
