@@ -64,7 +64,7 @@ render resources shownState = do
   bgColor <- mapRGB format 0x37 0x16 0xB4
   fillRect screen Nothing bgColor
 
-  mapM_ (paintObject screen resources) $ gameObjects shownState
+  mapM_ (paintObject screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
   displayInfo screen resources (gameInfo shownState)
 
@@ -79,8 +79,8 @@ displayInfo screen resources over =
   printAlignRight screen resources
     ("Time: " ++ printf "%.3f" (gameTime over)) (10,50)
 
-paintObject :: Surface -> Resources -> Object -> IO ()
-paintObject screen resources object =
+paintObject :: Surface -> Resources -> Double -> Object -> IO ()
+paintObject screen resources time object =
   case objectKind object of
     (Side {}) -> return ()
     (Ball ballSize) -> do
@@ -107,30 +107,37 @@ paintObject screen resources object =
           (w,h)    = (round *** round) sz
       fillRect screen (Just (Rect x y w h)) (Pixel blockColor)
 
-    (Player state _) -> do
-      let (px,py)  = (\(u,v) -> (u, gameHeight - v - playerHeight)) (objectPos object)
-      let (x,y)    = (round *** round) (px,py)
-          (vx,vy)  = objectVel object
-          (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
-          (w,h)    = (round playerWidth, round playerHeight)
-          playerColor = case state of
-                          PlayerRight -> playerRightColor
-                          PlayerLeft  -> playerLeftColor
-                          PlayerStand -> playerStandColor
+    (Player state _ vulnerable) -> do
+      let blinkOn  = vulnerable || (even (round (time * 10)))
+      when blinkOn $ do
 
-      fillRect screen (Just (Rect x y w h)) (Pixel playerColor)
+        let (px,py)  = (\(u,v) -> (u, gameHeight - v - playerHeight)) (objectPos object)
+        let (x,y)    = (round *** round) (px,py)
+            (vx,vy)  = objectVel object
+            (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
+            (w,h)    = (round playerWidth, round playerHeight)
+            playerColor = case (state, vulnerable) of
+                            (PlayerRight, True)  -> playerRightColor
+                            (PlayerLeft , True)  -> playerLeftColor
+                            (PlayerStand, True)  -> playerStandColor
+                            (PlayerRight, False) -> playerBlinkRightColor
+                            (PlayerLeft , False) -> playerBlinkLeftColor
+                            (PlayerStand, False) -> playerBlinkStandColor
 
-      _ <- SDLP.line screen (fromIntegral x) (fromIntegral y) x' y' (SDL.Pixel velColor)
+        fillRect screen (Just (Rect x y w h)) (Pixel playerColor)
 
-      -- Print position
-      let font = miniFont resources
-      message <- TTF.renderTextSolid font (show $ (round *** round) (objectPos object)) fontColor
-      let w           = SDL.surfaceGetWidth  message
-          h           = SDL.surfaceGetHeight message
-          (x'',y'')   = (round *** round) (px,py)
-          rect        = SDL.Rect (x''+30) (y''-30) w h
-      SDL.blitSurface message Nothing screen (Just rect)
-      return ()
+        _ <- SDLP.line screen (fromIntegral x) (fromIntegral y) x' y' (SDL.Pixel velColor)
+
+        -- Print position
+        let font = miniFont resources
+        message <- TTF.renderTextSolid font (show $ (round *** round) (objectPos object)) fontColor
+        let w           = SDL.surfaceGetWidth  message
+            h           = SDL.surfaceGetHeight message
+            (x'',y'')   = (round *** round) (px,py)
+            rect        = SDL.Rect (x''+30) (y''-30) w h
+        SDL.blitSurface message Nothing screen (Just rect)
+        return ()
+
     Projectile -> do
         let fireColor = Pixel playerRightColor
             (x0,y0)   = (\(x,y) -> (x, height - y)) $ objectPos object

@@ -46,7 +46,7 @@ isPlayer o = case objectKind o of
 
 -- | The kind of object and any size properties.
 data ObjectKind = Ball   Double -- radius
-                | Player PlayerState Int -- lives
+                | Player PlayerState Int {- lives -} Bool {- Vulnerable -}
                 | Side   Side
                 | Projectile
                 | Block Size2D
@@ -57,6 +57,7 @@ data PlayerState = PlayerRight
                  | PlayerLeft
                  | PlayerStand
   deriving (Eq, Show)
+
 
 -- Partial function!
 objectSize :: Object -> Size2D

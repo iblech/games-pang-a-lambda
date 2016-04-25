@@ -72,8 +72,8 @@ playerDead' gs = gamePlaying && dead
             || not (null (filter playerIsDead (gameObjects gs)))
 
        playerIsDead o = case objectKind o of
-           (Player _ l) -> l < 0
-           otherwise    -> False
+           (Player _ lives _) -> lives < 0
+           otherwise          -> False
 
        gamePlaying = GamePlaying == gameStatus (gameInfo gs)
 
@@ -175,10 +175,10 @@ ballSmall  = ballMedium / 2
 -- ** Player
 objPlayers :: [ListSF ObjectInput Object]
 objPlayers =
-  [ player initialLives playerName (320, 20) ]
+  [ player initialLives playerName (320, 20) True ]
 
-player :: Int -> String -> Pos2D -> ListSF ObjectInput Object
-player lives name p0 = ListSF $ proc i -> do
+player :: Int -> String -> Pos2D -> Bool -> ListSF ObjectInput Object
+player lives name p0 vul = ListSF $ proc i -> do
   (ppos, pvel) <- playerProgress p0 -< userInput i
   let state = playerState (userInput i)
 
@@ -193,18 +193,21 @@ player lives name p0 = ListSF $ proc i -> do
                 $ collisionMask name ("ball" `isPrefixOf`)
                 $ collisions i
 
-  dead <- isEvent ^<< edge -< hitByBall
+  vulnerable <- switch (constant vul &&& after 2 ())
+                       (\_ -> constant True) -< ()
 
-  let newPlayer   = [ player (lives-1) name p0
+  dead <- isEvent ^<< edge -< hitByBall && vulnerable
+
+  let newPlayer   = [ player (lives-1) name p0 False
                     | dead  && lives > 0 ]
 
   -- Final player
   returnA -< (Object { objectName           = name
-                     , objectKind           = Player state lives
+                     , objectKind           = Player state lives vulnerable
                      , objectPos            = ppos
                      , objectVel            = pvel
-                     , canCauseCollisions   = True
-                     , collisionEnergy      = 1
+                     , canCauseCollisions   = vul
+                     , collisionEnergy      = if vul then 1 else 0
                      }
              , dead
              , newF1Arrows ++ newPlayer)
@@ -374,7 +377,11 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   let collisionsWithoutBalls = filter (not . allBalls) cs
       allBalls (Collision cdata) = all (isPrefixOf "ball" . fst) cdata
 
-  let ev = maybeToEvent (changedVelocity bid collisionsWithoutBalls)
+  let collisionsWithoutPlayer = filter (not . anyPlayer)
+                                 collisionsWithoutBalls
+      anyPlayer (Collision cdata) = any (isPrefixOf "player" . fst) cdata
+
+  let ev = maybeToEvent (changedVelocity bid collisionsWithoutPlayer)
   returnA -< fmap (\v -> (objectPos o, v)) ev
 
 -- | Position of the ball, starting from p0 with velicity v0, since the time of
@@ -387,7 +394,6 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
   -- Integrate acceleration, add initial velocity and cap speed. Resets both
   -- the initial velocity and the current velocity to (0,0) when the user
   -- presses the Halt key (hence the dependency on the controller input ci).
-
   vInit <- startAs v0 -< ci
   vel   <- vdiffSF    -< (vInit, (0, -1000.8), ci)
 

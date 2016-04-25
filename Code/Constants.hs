@@ -63,6 +63,15 @@ playerLeftColor = 0x00AAAAFF
 playerStandColor :: Word32
 playerStandColor = 0xAAAA00FF
 
+playerBlinkRightColor :: Word32
+playerBlinkRightColor = 0xAA00AAAA
+
+playerBlinkLeftColor :: Word32
+playerBlinkLeftColor = 0x00AAAAAA
+
+playerBlinkStandColor :: Word32
+playerBlinkStandColor = 0xAAAA00AA
+
 blockColor :: Word32
 blockColor = 0xCAAC3DFF
 
