@@ -36,10 +36,13 @@ module Game (wholeGame) where
 
 -- External imports
 import Data.List
+import Data.Maybe
+import Debug.Trace
 import FRP.Yampa
 import FRP.Yampa.Switches
 
 -- General-purpose internal imports
+import Data.Extra.Ord
 import Data.Extra.VectorSpace
 import Physics.TwoDimensions.Collisions       as Collisions
 import Physics.TwoDimensions.Dimensions
@@ -152,6 +155,7 @@ objEnemies n =
   [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
 
 blocks :: Int -> [ListSF ObjectInput Object]
+blocks 0 = [ objBlock "block1" (200, 55) (100, 50) ]
 blocks n = [ objBlock "block1" (200, 200) (100, 50) ]
 
 -- | Generic block builder, given a name, a size and its base
@@ -179,7 +183,8 @@ objPlayers =
 
 player :: Int -> String -> Pos2D -> Bool -> ListSF ObjectInput Object
 player lives name p0 vul = ListSF $ proc i -> do
-  (ppos, pvel) <- playerProgress p0 -< userInput i
+  (ppos, pvel) <- playerProgress name p0 -< i
+
   let state = playerState (userInput i)
 
   -- Fire!!
@@ -206,8 +211,8 @@ player lives name p0 vul = ListSF $ proc i -> do
                      , objectKind           = Player state lives vulnerable
                      , objectPos            = ppos
                      , objectVel            = pvel
-                     , canCauseCollisions   = vul
-                     , collisionEnergy      = if vul then 1 else 0
+                     , canCauseCollisions   = True
+                     , collisionEnergy      = 1
                      }
              , dead
              , newF1Arrows ++ newPlayer)
@@ -222,15 +227,35 @@ playerState controller =
 playerName :: String
 playerName = "player"
 
-playerProgress :: Pos2D -> SF Controller (Pos2D, Vel2D)
-playerProgress p0 = proc (c) -> do
-  -- Obtain velocity based on state and input
-  v <- repeatSF getVelocity PlayerStand -< c
+playerProgress :: String -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
+playerProgress pid p0 = proc i -> do
+  -- Obtain velocity based on state and input, and obtain
+  -- velocity delta to be applied to the position.
+  v  <- repeatSF getVelocity PlayerStand -< userInput i
 
-  p <- (p0 ^+^) ^<< integral -< v
-  returnA -< (p, v)
+  let collisionsWithBlocks = filter onlyBlocks (collisions i)
+
+      onlyBlocks (Collision cdata) = -- any ((pid ==)  . fst) cdata
+                                     -- &&
+                                       any (isBlockId . fst) cdata
+
+      isBlockId s = "Wall" `isSuffixOf` s || "block" `isPrefixOf` s
+
+  let ev = changedVelocity pid collisionsWithBlocks
+      vc = fromMaybe v ev
+
+  (px,py) <- (p0 ^+^) ^<< integral -< vc
+
+  -- Calculate actual velocity based on corrected/capped position
+  v' <- derivative -< (px, py)
+
+  returnA -< ((px, py), v')
 
  where
+
+   capPlayerPos (px, py) = (px', py')
+     where px' = inRange (0, width - playerWidth)  px
+           py' = inRange (0, height - playerHeight) py
 
    getVelocity :: PlayerState -> SF Controller (Vel2D, Event PlayerState)
    getVelocity pstate = stateVel pstate &&& stateChanged pstate

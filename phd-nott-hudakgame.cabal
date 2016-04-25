@@ -182,6 +182,7 @@ executable phd-nott-hudakgame
                    Control.Extra.Monad
                    Data.Extra.IORef
                    Data.Extra.Num
+                   Data.Extra.Ord
                    Data.Extra.VectorSpace
                    Graphics.UI.Extra.SDL
                    Physics.TwoDimensions.Collisions
