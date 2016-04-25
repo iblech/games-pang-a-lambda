@@ -52,3 +52,14 @@ renderAlignRight screen surface (x,y) = void $ do
       h           = surfaceGetHeight surface
       rect        = Rect (rightMargin - x - w) y w h
   blitSurface surface Nothing screen (Just rect)
+
+renderAlignCenter :: Surface -> Surface -> IO ()
+renderAlignCenter screen surface = void $ do
+  let tWidth  = surfaceGetWidth screen
+      tHeight = surfaceGetWidth screen
+      w       = surfaceGetWidth  surface
+      h       = surfaceGetHeight surface
+      px      = (tWidth - w) `div` 2
+      py      = (tHeight - h) `div` 2
+      rect    = Rect px py w h
+  blitSurface surface Nothing screen (Just rect)

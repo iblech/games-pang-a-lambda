@@ -35,11 +35,14 @@
 module Game (wholeGame) where
 
 -- External imports
+import Data.List
+import Data.Maybe
+import Debug.Trace
 import FRP.Yampa
 import FRP.Yampa.Switches
 
 -- General-purpose internal imports
-import Data.List
+import Data.Extra.Ord
 import Data.Extra.VectorSpace
 import Physics.TwoDimensions.Collisions       as Collisions
 import Physics.TwoDimensions.Dimensions
@@ -60,9 +63,42 @@ import ObjectSF
 -- there are no more levels ('outOfLevels'), in which case the player has won
 -- ('wonGame').
 wholeGame :: SF Controller GameState
-wholeGame = gamePlay initialObjects >>> composeGameState
- where composeGameState :: SF (Objects, Time) GameState
-       composeGameState = arr (second GameInfo >>> uncurry GameState)
+wholeGame = switch (level 0 >>> (identity &&& playerDead))
+                   (\_ -> wholeGame)
+
+playerDead :: SF GameState (Event ())
+playerDead = playerDead' ^>> edge
+
+playerDead' :: GameState -> Bool
+playerDead' gs = gamePlaying && dead
+ where dead = null (filter isPlayer (gameObjects gs))
+            || not (null (filter playerIsDead (gameObjects gs)))
+
+       playerIsDead o = case objectKind o of
+           (Player _ lives _) -> lives < 0
+           otherwise          -> False
+
+       gamePlaying = GamePlaying == gameStatus (gameInfo gs)
+
+level n = switch (loadLevel n &&& after 2 ())
+                 (\_ -> myLevel n)
+
+myLevel n = switch (playLevel n >>> (identity &&& outOfEnemies))
+                   (\_ -> level (n + 1))
+
+loadLevel n = constant (GameState [] (GameInfo 0 n GameLoading))
+
+playLevel n =
+   gamePlay (initialObjects n) >>^ composeGameState
+    where composeGameState :: (Objects, Time) -> GameState
+          composeGameState (objs, t) = GameState objs (GameInfo t n GamePlaying)
+
+outOfEnemies = arr outOfEnemies'
+outOfEnemies' gs | null balls = Event gs
+                 | otherwise  = NoEvent
+
+  where objs  = gameObjects gs
+        balls = filter isBall objs
 
 -- ** Game with partial state information
 
@@ -96,30 +132,71 @@ gamePlay objs = loopPre [] $
 -- * Game objects
 --
 -- | Objects initially present: the walls, the ball, the player and the blocks.
-initialObjects :: [ListSF ObjectInput Object]
-initialObjects =
+initialObjects :: Int -> [ListSF ObjectInput Object]
+initialObjects level =
   -- Walls
   [ inertSF objSideRight
   , inertSF objSideTop
   , inertSF objSideLeft
   , inertSF objSideBottom
   ]
-  ++ objEnemies
+  ++ objEnemies level
+  ++ blocks     level
   ++ objPlayers
 
 -- ** Enemies
-objEnemies :: [ListSF ObjectInput Object]
-objEnemies =
+objEnemies :: Int -> [ListSF ObjectInput Object]
+objEnemies 0 =
   [ splittingBall ballWidth "ballEnemy1" (600, 300) (360, -350) ]
+objEnemies 1 =
+  [ splittingBall ballMedium "ballEnemy1" (width/4, 300)   (360, -350)
+  , splittingBall ballMedium "ballEnemy2" (3*width/4, 300) (360, -350) ]
+objEnemies 2 =
+  map ballLeft [1..6] ++ map ballRight [1..6]
+ where baseL = 20
+       sep   = width / 20
+       baseR = width - (baseL  + 6 * sep)
+
+       ballLeft n = splittingBall ballSmall ("ballEnemyL" ++ show n)
+                         (baseL + n * sep, 100) (-200, -200)
+
+       ballRight n = splittingBall ballSmall ("ballEnemyR" ++ show n)
+                           (baseR + n * sep, 100) (200, -200)
+
+objEnemies n =
+  [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
+
+blocks :: Int -> [ListSF ObjectInput Object]
+blocks 0 = [ objBlock "block1" (200, 55) (100, 50) ]
+blocks n = [ objBlock "block1" (200, 200) (100, 50) ]
+
+-- | Generic block builder, given a name, a size and its base
+-- position.
+objBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
+objBlock name pos size = ListSF $ constant
+  (Object { objectName           = name
+          , objectKind           = Block size
+          , objectPos            = pos
+          , objectVel            = (0,0)
+          , canCauseCollisions   = False
+          , collisionEnergy      = 0
+          }, False, [])
+
+-- ** Enemy sizes
+ballGiant  = ballWidth
+ballBig    = ballGiant  / 2
+ballMedium = ballBig    / 2
+ballSmall  = ballMedium / 2
 
 -- ** Player
 objPlayers :: [ListSF ObjectInput Object]
 objPlayers =
-  [ player playerName (320, 20) ]
+  [ player initialLives playerName (320, 20) True ]
 
-player :: String -> Pos2D -> ListSF ObjectInput Object
-player name p0 = ListSF $ proc i -> do
-  (ppos, pvel) <- playerProgress p0 -< userInput i
+player :: Int -> String -> Pos2D -> Bool -> ListSF ObjectInput Object
+player lives name p0 vul = ListSF $ proc i -> do
+  (ppos, pvel) <- playerProgress name p0 -< i
+
   let state = playerState (userInput i)
 
   -- Fire!!
@@ -132,13 +209,18 @@ player name p0 = ListSF $ proc i -> do
   let hitByBall = not $ null
                 $ collisionMask name ("ball" `isPrefixOf`)
                 $ collisions i
-  dead <- isEvent ^<< edge -< hitByBall
 
-  let newPlayer   = [ player name p0 | dead ]
+  vulnerable <- switch (constant vul &&& after 2 ())
+                       (\_ -> constant True) -< ()
+
+  dead <- isEvent ^<< edge -< hitByBall && vulnerable
+
+  let newPlayer   = [ player (lives-1) name p0 False
+                    | dead  && lives > 0 ]
 
   -- Final player
   returnA -< (Object { objectName           = name
-                     , objectKind           = Player state
+                     , objectKind           = Player state lives vulnerable
                      , objectPos            = ppos
                      , objectVel            = pvel
                      , canCauseCollisions   = True
@@ -157,15 +239,35 @@ playerState controller =
 playerName :: String
 playerName = "player"
 
-playerProgress :: Pos2D -> SF Controller (Pos2D, Vel2D)
-playerProgress p0 = proc (c) -> do
-  -- Obtain velocity based on state and input
-  v <- repeatSF getVelocity PlayerStand -< c
+playerProgress :: String -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
+playerProgress pid p0 = proc i -> do
+  -- Obtain velocity based on state and input, and obtain
+  -- velocity delta to be applied to the position.
+  v  <- repeatSF getVelocity PlayerStand -< userInput i
 
-  p <- (p0 ^+^) ^<< integral -< v
-  returnA -< (p, v)
+  let collisionsWithBlocks = filter onlyBlocks (collisions i)
+
+      onlyBlocks (Collision cdata) = any (playerCollisionElem . fst) cdata
+
+      playerCollisionElem s = isBlockId s || isWallId s
+      isBlockId = ("block" `isPrefixOf`)
+      isWallId  = ("Wall" `isSuffixOf`)
+
+  let ev = changedVelocity pid collisionsWithBlocks
+      vc = fromMaybe v ev
+
+  (px,py) <- (p0 ^+^) ^<< integral -< vc
+
+  -- Calculate actual velocity based on corrected/capped position
+  v' <- derivative -< (px, py)
+
+  returnA -< ((px, py), v')
 
  where
+
+   capPlayerPos (px, py) = (px', py')
+     where px' = inRange (0, width - playerWidth)  px
+           py' = inRange (0, height - playerHeight) py
 
    getVelocity :: PlayerState -> SF Controller (Vel2D, Event PlayerState)
    getVelocity pstate = stateVel pstate &&& stateChanged pstate
@@ -193,9 +295,10 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
   -- Delay death if the fire is "sticky"
   hit <- switch (never &&& fireHitCeiling) (\_ -> stickyDeath sticky) -< y
 
-  hitB <- arr (fireCollidedWithBall name) -< collisions i
+  hitBall  <- arr (fireCollidedWithBall  name) -< collisions i
+  hitBlock <- arr (fireCollidedWithBlock name) -< collisions i
 
-  let dead = isEvent hit || hitB
+  let dead = isEvent hit || hitBall || hitBlock
 
   let object = Object { objectName = name
                       , objectKind = Projectile
@@ -209,8 +312,9 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
 
  where
 
-   fireHitCeiling = arr (> height) >>> edge
-   fireCollidedWithBall bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+   fireHitCeiling = arr (>= height) >>> edge
+   fireCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+   fireCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
 
 stickyDeath :: Bool -> SF a (Event ())
 stickyDeath True  = after 30 ()
@@ -233,10 +337,12 @@ splittingBall size bid p0 v0 = ListSF $ proc i -> do
   let offspringIDL = bid ++ show t ++ "L"
       offspringIDR = bid ++ show t ++ "R"
 
+  let enforceYPositive (x,y) = (x, abs y)
+
   -- Position and velocity of new offspring
   let bpos = physObjectPos bo
-      bvel = physObjectVel bo
-      ovel = (\(vx,vy) -> (-vx, vy)) bvel
+      bvel = enforceYPositive $ physObjectVel bo
+      ovel = enforceYPositive $ (\(vx,vy) -> (-vx, vy)) bvel
 
   -- Offspring size, unless this ball is too small to split
   let tooSmall      = size <= (ballWidth / 8)
@@ -310,7 +416,11 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   let collisionsWithoutBalls = filter (not . allBalls) cs
       allBalls (Collision cdata) = all (isPrefixOf "ball" . fst) cdata
 
-  let ev = maybeToEvent (changedVelocity bid collisionsWithoutBalls)
+  let collisionsWithoutPlayer = filter (not . anyPlayer)
+                                 collisionsWithoutBalls
+      anyPlayer (Collision cdata) = any (isPrefixOf "player" . fst) cdata
+
+  let ev = maybeToEvent (changedVelocity bid collisionsWithoutPlayer)
   returnA -< fmap (\v -> (objectPos o, v)) ev
 
 -- | Position of the ball, starting from p0 with velicity v0, since the time of
@@ -323,7 +433,6 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
   -- Integrate acceleration, add initial velocity and cap speed. Resets both
   -- the initial velocity and the current velocity to (0,0) when the user
   -- presses the Halt key (hence the dependency on the controller input ci).
-
   vInit <- startAs v0 -< ci
   vel   <- vdiffSF    -< (vInit, (0, -1000.8), ci)
 

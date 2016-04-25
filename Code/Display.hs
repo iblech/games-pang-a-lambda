@@ -60,13 +60,17 @@ render resources shownState = do
   -- Obtain surface
   screen <- getVideoSurface
 
-  let format = surfaceGetPixelFormat screen
-  bgColor <- mapRGB format 0x37 0x16 0xB4
-  fillRect screen Nothing bgColor
+  -- Clear BG
+  fillRect screen Nothing (Pixel backgroundColor)
 
-  mapM_ (paintObject screen resources) $ gameObjects shownState
+  -- Paint objects
+  mapM_ (paintObject screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
+  -- Paint HUD
   displayInfo screen resources (gameInfo shownState)
+
+  -- Paint messages/popups (eg. "Paused", "Level 0", etc.)
+  displayMessage screen resources (gameInfo shownState)
 
   -- Double buffering
   SDL.flip screen
@@ -77,8 +81,8 @@ displayInfo screen resources over =
   printAlignRight screen resources
     ("Time: " ++ printf "%.3f" (gameTime over)) (10,50)
 
-paintObject :: Surface -> Resources -> Object -> IO ()
-paintObject screen resources object =
+paintObject :: Surface -> Resources -> Double -> Object -> IO ()
+paintObject screen resources time object =
   case objectKind object of
     (Side {}) -> return ()
     (Ball ballSize) -> do
@@ -99,37 +103,56 @@ paintObject screen resources object =
       SDL.blitSurface message Nothing screen (Just rect)
       return ()
 
-    (Player state) -> do
-      let (px,py)  = (\(u,v) -> (u, gameHeight - v - playerHeight)) (objectPos object)
-      let (x,y)    = (round *** round) (px,py)
-          (vx,vy)  = objectVel object
-          (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
-          (w,h)    = (round playerWidth, round playerHeight)
-          playerColor = case state of
-                          PlayerRight -> playerRightColor
-                          PlayerLeft  -> playerLeftColor
-                          PlayerStand -> playerStandColor
+    (Block sz@(w', h')) -> void $ do
+      let (px,py)  = (objectPos object)
+          (x,y)    = (round *** round) (px,gameHeight - py -h')
+          (w,h)    = (round *** round) sz
+      fillRect screen (Just (Rect x y w h)) (Pixel blockColor)
 
-      fillRect screen (Just (Rect x y w h)) (Pixel playerColor)
+    (Player state _ vulnerable) -> do
+      let blinkOn  = vulnerable || (even (round (time * 10)))
+      when blinkOn $ do
 
-      _ <- SDLP.line screen (fromIntegral x) (fromIntegral y) x' y' (SDL.Pixel velColor)
+        let (px,py)  = (\(u,v) -> (u, gameHeight - v - playerHeight)) (objectPos object)
+        let (x,y)    = (round *** round) (px,py)
+            (vx,vy)  = objectVel object
+            (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
+            (w,h)    = (round playerWidth, round playerHeight)
+            playerColor = case (state, vulnerable) of
+                            (PlayerRight, True)  -> playerRightColor
+                            (PlayerLeft , True)  -> playerLeftColor
+                            (PlayerStand, True)  -> playerStandColor
+                            (PlayerRight, False) -> playerBlinkRightColor
+                            (PlayerLeft , False) -> playerBlinkLeftColor
+                            (PlayerStand, False) -> playerBlinkStandColor
 
-      -- Print position
-      let font = miniFont resources
-      message <- TTF.renderTextSolid font (show $ (round *** round) (objectPos object)) fontColor
-      let w           = SDL.surfaceGetWidth  message
-          h           = SDL.surfaceGetHeight message
-          (x'',y'')   = (round *** round) (px,py)
-          rect        = SDL.Rect (x''+30) (y''-30) w h
-      SDL.blitSurface message Nothing screen (Just rect)
-      return ()
+        fillRect screen (Just (Rect x y w h)) (Pixel playerColor)
+
+        _ <- SDLP.line screen (fromIntegral x) (fromIntegral y) x' y' (SDL.Pixel velColor)
+
+        -- Print position
+        let font = miniFont resources
+        message <- TTF.renderTextSolid font (show $ (round *** round) (objectPos object)) fontColor
+        let w           = SDL.surfaceGetWidth  message
+            h           = SDL.surfaceGetHeight message
+            (x'',y'')   = (round *** round) (px,py)
+            rect        = SDL.Rect (x''+30) (y''-30) w h
+        SDL.blitSurface message Nothing screen (Just rect)
+        return ()
+
     Projectile -> do
-        let fireColor = Pixel playerRightColor
-            (x0,y0)   = (\(x,y) -> (x, height - y)) $ objectPos object
+        let (x0,y0)   = (\(x,y) -> (x - 5, height - y)) $ objectPos object
             (dx, dy)  = (10, snd (objectPos object))
             (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)
-        fillRect screen (Just (Rect x0' y0' dx' dy')) fireColor
+        fillRect screen (Just (Rect x0' y0' dx' dy')) (Pixel fireColor)
         return ()
+
+-- * Painting functions
+displayMessage :: Surface -> Resources -> GameInfo -> IO()
+displayMessage screen resources info = case gameStatus info of
+  GameLoading ->
+    printAlignCenter screen resources ("Level " ++ show (gameLevel info))
+  _ -> return ()
 
 -- * Render text with alignment
 printAlignRight :: Surface -> Resources -> String -> (Int, Int) -> IO ()
@@ -137,3 +160,10 @@ printAlignRight screen resources msg (x,y) = void $ do
   let font = resFont resources
   message <- TTF.renderTextSolid font msg fontColor
   renderAlignRight screen message (x,y)
+
+-- * Render text with alignment
+printAlignCenter :: Surface -> Resources -> String -> IO ()
+printAlignCenter screen resources msg = void $ do
+  let font = resFont resources
+  message <- TTF.renderTextSolid font msg fontColor
+  renderAlignCenter screen message

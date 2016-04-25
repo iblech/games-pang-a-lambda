@@ -24,9 +24,9 @@ oppositeSide BottomSide = TopSide
 oppositeSide LeftSide   = RightSide
 oppositeSide RightSide  = LeftSide
 
-data Shape = Rectangle Pos2D Size2D -- A corner and the whole size
-           | Circle    Pos2D Double -- Position and radius
-           | SemiPlane Pos2D Side   --
+data Shape = Rectangle  Pos2D Size2D -- A corner and the whole size
+           | Circle     Pos2D Double -- Position and radius
+           | SemiPlane  Pos2D Side   --
 
 -- | Detects if two shapes overlap.
 --
