@@ -123,9 +123,27 @@ detectCollision obj1 obj2
   | otherwise = Nothing
 
  where response  = collisionResponseObj obj1 obj2
-       colNormal = normalize (physObjectPos obj1 ^-^ physObjectPos obj2)
+       relativeP = physObjectPos obj1 ^-^ physObjectPos obj2
        relativeV = physObjectVel obj1 ^-^ physObjectVel obj2
-       vrn       = relativeV `dot` colNormal
+       -- If the inner product between the relative position and velocity
+       -- is negative, then the two objects are approaching each other.
+       -- Note that there is no collision if vrn = 0. This could be
+       -- because the objects are at the same position and thus cannot get
+       -- any closer. Or because their relative velocity is 0 and thus are
+       -- not approaching for that reason. This, if there *is* a collision,
+       -- then we know that both the relative position and velocity is non 0,
+       -- and it is safe to e.g. normalize the relative position as is done
+       -- in "correctVel" below.
+       vrn       = relativeV `dot` relativeP
+
+
+-- HN 2016-04-26: Old code: Problematic if same positions! But all we
+-- want to know here is if the objects are approaching each other.
+-- For this, all that matters is the sign of the inner product. There
+-- is no need to normalize the relative position!
+--       colNormal = normalize (physObjectPos obj1 ^-^ physObjectPos obj2)
+--       relativeV = physObjectVel obj1 ^-^ physObjectVel obj2
+--       vrn       = relativeV `dot` colNormal
 
 overlap :: PhysicalObject o k Shape => o -> o -> Bool
 overlap obj1 obj2 =
