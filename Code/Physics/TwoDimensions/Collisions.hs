@@ -23,24 +23,22 @@ data CollisionPoint = CollisionSide  Side
 --
 -- PRE: the shapes do collide. Use 'overlapShape' to check.
 shapeCollisionPoint :: Shape -> Shape -> CollisionPoint
-shapeCollisionPoint (Circle p1 _) (Circle p2 _) =
-  -- | p1x =~ p2x && p1y >  p2y = CollisionAngle (- pi / 2)
-  -- | p1x =~ p2x && p1y <= p2y = CollisionAngle (pi / 2)
-  -- | otherwise                =
-   CollisionAngle angle
+shapeCollisionPoint (Circle p1 _)    (Circle p2 _)     = CollisionAngle angle
   where (px,py) = p2 ^-^ p1
         angle   = atan2 py px
 shapeCollisionPoint (Circle _ _)     (SemiPlane _ s2)  = CollisionSide s2
-shapeCollisionPoint (SemiPlane _ s1) (Circle _ _ )     = CollisionSide (oppositeSide s1)
-shapeCollisionPoint (SemiPlane _ _)  (SemiPlane _ s2)  = CollisionSide s2
 shapeCollisionPoint (Circle p1 s1)   (Rectangle p2 s2) =
    velCollitionSide $ fromJust $ responseCircleAABB (p1, s1) (rectangleToCentre (p2, s2))
+
+shapeCollisionPoint (SemiPlane _ s1)  (Circle _ _ )     = CollisionSide (oppositeSide s1)
+shapeCollisionPoint (SemiPlane _ _)   (SemiPlane _ s2)  = CollisionSide s2
+shapeCollisionPoint p@(SemiPlane _ _) r@(Rectangle _ _) = let CollisionSide side = shapeCollisionPoint r p
+                                                          in CollisionSide (oppositeSide side)
+
 shapeCollisionPoint r@(Rectangle _ _) c@(Circle _ _)      = let CollisionSide side = shapeCollisionPoint c r
                                                             in CollisionSide (oppositeSide side)
 shapeCollisionPoint r@(Rectangle _ _) (SemiPlane p2 s2)   = let (p2', s2') = semiplaneRectangle p2 s2
                                                             in shapeCollisionPoint r (Rectangle p2' s2')
-shapeCollisionPoint p@(SemiPlane _ _) r@(Rectangle _ _)   = let CollisionSide side = shapeCollisionPoint r p
-                                                            in CollisionSide (oppositeSide side)
 shapeCollisionPoint (Rectangle p1 s1) (Rectangle p2 s2) =
    velCollitionSide $ fromJust $ responseAABB2 (p1, s1) (p2, s2)
 
@@ -62,54 +60,6 @@ type Collisions k = [Collision k]
 data Collision k = Collision
   { collisionData :: [(k, Vel2D)] } -- ObjectId x Velocity
  deriving Show
-
--- -- | Detects a collision between one object and another.
--- detectCollision :: (PhysicalObject o k Shape) => o -> o -> Maybe (Collision k)
--- detectCollision obj1 obj2 =
---   case (physObjectShape obj1, physObjectShape obj2) of
---     (Circle p1 r1, Circle p2 r2) -> do
---       -- In the maybe monad
---       guard (overlapsCircle2 (p1,r1) (p2,r2))
---       vd1 <- responseCircle2 (p1, r1) (p2, r2)
---       vd2 <- return $ (\(vx, vy) -> (-vx, -vy)) vd1
---       -- vd2 <- responseCircle2 (p2, r2) (p1, r1)
---       return $ Collision [ (physObjectId obj1, vd1)
---                          , (physObjectId obj2, vd2)
---                          ]
---     (Circle (p1x,p1y) s1, SemiPlane (px,py) side) -> do
---       case side of
---          LeftSide   -> guard (p1x - s1 <= px && fst (physObjectVel obj1) < 0)
---          RightSide  -> guard (p1x + s1 >= px && fst (physObjectVel obj1) > 0)
---          TopSide    -> guard (p1y - s1 <= py && snd (physObjectVel obj1) < 0)
---          BottomSide -> guard (p1y + s1 >= py && snd (physObjectVel obj1) > 0)
---       vd <- case side of
---               LeftSide   -> return $ (\(vx,vy) -> ((-1) * vx, 0)) $ physObjectVel obj1
---               RightSide  -> return $ (\(vx,vy) -> ((-1) * vx, 0)) $ physObjectVel obj1
---               TopSide    -> return $ (\(vx,vy) -> (0, (-1) * vy)) $ physObjectVel obj1
---               BottomSide -> return $ (\(vx,vy) -> (0, (-1) * vy)) $ physObjectVel obj1
---       return $ Collision [ (physObjectId obj1, vd)
---                          , (physObjectId obj2, (0,0))
---                          ]
---     (Circle p1 r1, Rectangle p2 s2) -> do
---       -- In the maybe monad
---       guard (circleAABBOverlap (p1,r1) (p2,s2))
---       vd1 <- responseCircleAABB (p1, r1) (p2, s2)
---       vd2 <- return $ (\(vx, vy) -> (-vx, -vy)) vd1
---       return $ Collision [ (physObjectId obj1, vd1)
---                          , (physObjectId obj2, vd2)
---                          ]
---     (Rectangle p1 s1, Rectangle p2 s2) -> do
---       guard (overlapsAABB2 (p1, s1) (p2, s2))
---       vd1 <- responseAABB2 (p1, s1) (p2, s2)
---       vd2 <- return $ (\(vx, vy) -> (-vx, -vy)) vd1
---       return $ Collision [ (physObjectId obj1, vd1)
---                          , (physObjectId obj2, vd2)
---                          ]
---     (SemiPlane _ _, Circle _ _) -> detectCollision obj2 obj1
---     (Rectangle _ _, Circle _ _) -> detectCollision obj2 obj1
---     _ -> Nothing
-
-
 
 detectCollision :: (PhysicalObject o k Shape) => o -> o -> Maybe (Collision k)
 detectCollision obj1 obj2
@@ -136,14 +86,14 @@ detectCollision obj1 obj2
        -- in "correctVel" below.
        vrn       = relativeV `dot` relativeP
 
-
--- HN 2016-04-26: Old code: Problematic if same positions! But all we
--- want to know here is if the objects are approaching each other.
--- For this, all that matters is the sign of the inner product. There
--- is no need to normalize the relative position!
---       colNormal = normalize (physObjectPos obj1 ^-^ physObjectPos obj2)
---       relativeV = physObjectVel obj1 ^-^ physObjectVel obj2
---       vrn       = relativeV `dot` colNormal
+       -- HN 2016-04-26: Old code: Problematic if same positions! But all we
+       -- want to know here is if the objects are approaching each other.
+       -- For this, all that matters is the sign of the inner product. There
+       -- is no need to normalize the relative position!
+       --
+       -- colNormal = normalize (physObjectPos obj1 ^-^ physObjectPos obj2)
+       -- relativeV = physObjectVel obj1 ^-^ physObjectVel obj2
+       -- vrn       = relativeV `dot` colNormal
 
 overlap :: PhysicalObject o k Shape => o -> o -> Bool
 overlap obj1 obj2 =
@@ -156,13 +106,16 @@ collisionPoint obj1 obj2 =
 collisionResponseObj :: PhysicalObject o k Shape => o -> o -> Collision k
 collisionResponseObj o1 o2 = Collision $
     map objectToCollision [(o1, collisionPt, o2), (o2, collisionPt', o1)]
-  where collisionPt  = collisionPoint o1 o2
-        collisionPt' = collisionPoint o2 o1
-        objectToCollision (o,pt,o') =
-          (physObjectId o,
-           correctVel (physObjectPos o) (physObjectPos o')
-                      (physObjectVel o) (physObjectVel o')
-                      pt (physObjectElas o))
+  where
+    collisionPt  = collisionPoint o1 o2
+    collisionPt' = collisionPoint o2 o1
+
+    objectToCollision (o,pt,o') =
+      ( physObjectId o
+      , correctVel (physObjectPos o) (physObjectPos o')
+                   (physObjectVel o) (physObjectVel o')
+                   pt (physObjectElas o)
+      )
 
 correctVel :: Pos2D -> Pos2D -> Vel2D -> Vel2D -> CollisionPoint -> Double -> Vel2D
 -- Specialised cases: just more optimal execution
@@ -207,10 +160,10 @@ correctVel p1 p2 (v1x,v1y) (v2x, v2y) (CollisionAngle _) e = (v1x, v1y) ^+^ ((e 
 --
 changedVelocity :: Eq n => n -> Collisions n -> Maybe Vel2D
 changedVelocity name cs =
-    case concatMap (filter ((== name) . fst) . collisionData) cs of
-        [] -> Nothing
-        -- vs -> Just (foldl (^+^) (0,0) (map snd vs))
-        (_, v') : _ -> Just v'
+  case concatMap (filter ((== name) . fst) . collisionData) cs of
+    []          -> Nothing
+    (_, v') : _ -> Just v'
+    -- vs       -> Just (foldl (^+^) (0,0) (map snd vs))
 
 -- | True if the velocity of the object has been changed by any collision.
 inCollision :: Eq n => n -> Collisions n -> Bool
@@ -219,10 +172,9 @@ inCollision name cs = isJust (changedVelocity name cs)
 -- | True if the two objects are colliding with one another.
 inCollisionWith :: Eq n => n -> n -> Collisions n -> Bool
 inCollisionWith nm1 nm2 cs = any both cs
-    where
-        both (Collision nmvs) =
-            any ((== nm1) . fst) nmvs
-            && any ((== nm2) . fst) nmvs
+  where
+    both (Collision nmvs) =
+      any ((== nm1) . fst) nmvs && any ((== nm2) . fst) nmvs
 
 -- * Apply an ID-based collision mask
 collisionMask :: Eq id
@@ -234,4 +186,3 @@ collisionMask cId mask = onCollisions ( filter (any (mask . fst))
  where onCollisions :: ([[(id, Vel2D)]] -> [[(id, Vel2D)]])
                     -> Collisions id    -> Collisions id
        onCollisions f = map Collision . f . map collisionData
-
