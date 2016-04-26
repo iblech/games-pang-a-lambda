@@ -17,12 +17,15 @@ gameHeight = height
 
 -- Energy transmission between objects in collisions
 velTrans :: Double
-velTrans = 1.00
+velTrans = 0.98
 
 -- Max speed
 maxVNorm :: Double
-maxVNorm = 500
-      
+maxVNorm = 50000
+
+gravity :: (Double, Double)
+gravity = (0, -1000.8)
+
 -- Delays
 ballWidth, ballHeight :: Double
 ballWidth  = 30

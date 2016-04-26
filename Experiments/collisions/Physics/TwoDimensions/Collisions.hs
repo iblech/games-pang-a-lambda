@@ -57,8 +57,10 @@ detectCollision obj1 obj2
 
  where response  = collisionResponseObj obj1 obj2
        colNormal = normalize (physObjectPos obj1 ^-^ physObjectPos obj2)
+       relativeP = physObjectPos obj1 ^-^ physObjectPos obj2
        relativeV = physObjectVel obj1 ^-^ physObjectVel obj2
-       vrn       = relativeV `dot` colNormal
+       vrn       = relativeV `dot` relativeP
+       -- NOTE: See Henrik's comment to the main game.
 
 overlap :: PhysicalObject o k Shape => o -> o -> Bool
 overlap obj1 obj2 =
