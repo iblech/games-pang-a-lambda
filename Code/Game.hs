@@ -300,7 +300,7 @@ gunFired name = proc (i, ppos) -> do
   newF1  <- edge -< controllerClick (userInput i)
   uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
 
-  let newFire = fire uniqId (fst ppos, 0) False
+  let newFire = fire uniqId (fst ppos + playerWidth / 2, 0) False
   returnA -< newF1 `tag` newFire
 
 eventToList :: Event a -> [ a ]
