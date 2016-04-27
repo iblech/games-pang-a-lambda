@@ -35,6 +35,7 @@ data Controller = Controller
   , controllerFast       :: Bool
   , controllerSlow       :: Bool
   , controllerSuperSlow  :: Bool
+  , controllerReverse    :: Bool
   , controllerFullscreen :: Bool
   }
 
@@ -60,6 +61,7 @@ initializeInputDevices = do
                                 False              -- Pause
                                 False              -- Exit
                                 False False False  -- Speed control
+                                False              -- Reverse time
                                 False              -- Fullscreen
 
 -- | Sense from the controller, providing its current
@@ -108,6 +110,8 @@ handleEvent c e =
     KeyUp   (Keysym { symKey = SDLK_s     }) -> c { controllerSlow       = False }
     KeyDown (Keysym { symKey = SDLK_x     }) -> c { controllerFast       = True  }
     KeyUp   (Keysym { symKey = SDLK_x     }) -> c { controllerFast       = False }
+    KeyDown (Keysym { symKey = SDLK_r     }) -> c { controllerReverse    = True  }
+    KeyUp   (Keysym { symKey = SDLK_r     }) -> c { controllerReverse    = False }
     KeyDown (Keysym { symKey = SDLK_h     }) -> c { controllerStop       = True  }
     KeyUp   (Keysym { symKey = SDLK_h     }) -> c { controllerStop       = False }
     KeyDown (Keysym { symKey = SDLK_SPACE }) -> c { controllerClick      = True  }
