@@ -35,5 +35,5 @@ senseTime timeRef = \mInput ->
   let tt  = if controllerSlow      mInput then (/10)      else id
       tt1 = if controllerSuperSlow mInput then (/100)     else tt
       tt2 = if controllerFast      mInput then (*10)      else tt1
-      tt3 = if controllerReverse   mInput then (\x -> -x) else tt2
-  in (tt3 . milisecsToSecs) <$> senseTimeRef timeRef
+      tt3 = if controllerReverse   mInput then (\x -> -x) else id
+  in (tt3 . tt2 . milisecsToSecs) <$> senseTimeRef timeRef
