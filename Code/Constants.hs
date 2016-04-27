@@ -24,9 +24,10 @@ velTrans = 1.00
 -- Max speed
 maxVNorm :: Double -> Double
 maxVNorm n
- | n > 15    = 800
- | n > 10    = 600
- | otherwise = 400
+  | n >= 100  -> 800
+  | n >= 50   -> 733
+  | n >= 25   -> 666
+  | otherwise -> 600
 
 ballWidth, ballHeight :: Double
 ballWidth  = 100
