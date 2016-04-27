@@ -77,7 +77,7 @@ playerBlinkStandColor :: Word32
 playerBlinkStandColor = 0x88F2D454
 
 backgroundColor :: Word32
-backgroundColor = 0xFFEDE9CB
+backgroundColor = 0x88EDE9CB
 
 blockColor :: Word32
 blockColor = 0xFF85AABC
@@ -90,3 +90,14 @@ fireSpeed = 400
 
 initialLives :: Int
 initialLives = 5
+
+-- Debugging collisions
+
+collisionDebugColor :: Word32
+collisionDebugColor = 0x88D2D4FF
+
+collisionDebugThickness :: Num a => a
+collisionDebugThickness = 3
+
+debugCollisions :: Bool
+debugCollisions = False

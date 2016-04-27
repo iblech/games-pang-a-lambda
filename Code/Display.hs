@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module Display where
 
 import           Control.Arrow              ((***))
@@ -13,6 +14,7 @@ import Constants
 import GameState
 import Objects
 import Resources
+import Physics.TwoDimensions.Shapes
 
 -- | Ad-hoc resource loading
 -- This function is ad-hoc in two senses: first, because it
@@ -65,6 +67,9 @@ render resources shownState = do
 
   -- Paint objects
   mapM_ (paintObject screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
+
+  when debugCollisions $
+    mapM_ (paintShape  screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
   -- Paint HUD
   displayInfo screen resources (gameInfo shownState)
@@ -146,6 +151,55 @@ paintObject screen resources time object =
             (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)
         fillRect screen (Just (Rect x0' y0' dx' dy')) (Pixel fireColor)
         return ()
+
+paintShape :: Surface -> Resources -> Double -> Object -> IO ()
+paintShape screen resources time object =
+ paintShape' screen resources time (objShape object)
+
+paintShape' screen resources time shape =
+  case shape of
+    Rectangle (px, py) (w,h) -> void $ do
+      let x1 = round px
+          x2 = round (px + w)
+          y1 = round (gameHeight - py - h)
+          y2 = round (gameHeight - py)
+      drawThickRectangle screen (Rect x1 y1 x2 y2) (Pixel collisionDebugColor) collisionDebugThickness
+
+    Circle    (px, py) rd -> void $ do
+      let x = round px
+          y = round (gameHeight - py)
+          r = round rd
+      drawThickCircle screen x y r (Pixel collisionDebugColor) collisionDebugThickness
+
+    SemiPlane (px, py) s ->
+      let w = round width
+          h = round height
+      in case s of
+           LeftSide   -> drawThickLine screen 0 0 0 h (Pixel collisionDebugColor) collisionDebugThickness
+           RightSide  -> drawThickLine screen w 0 w h (Pixel collisionDebugColor) collisionDebugThickness
+           TopSide    -> drawThickLine screen 0 0 w 0 (Pixel collisionDebugColor) collisionDebugThickness
+           BottomSide -> drawThickLine screen 0 h w h (Pixel collisionDebugColor) collisionDebugThickness
+
+drawThickRectangle surface (Rect x1 y1 x2 y2) pixel 0 = return ()
+drawThickRectangle surface rect@(Rect x1 y1 x2 y2) pixel n = do
+  let n' = n-1
+  SDLP.rectangle surface (Rect (x1-n') (y1-n') (x2+n') (y2+n')) pixel
+  drawThickRectangle surface rect pixel n'
+
+drawThickCircle screen x y r pixel 0 = return ()
+drawThickCircle screen x y r pixel n = do
+  let n' = n-1
+  SDLP.circle screen x y (r+n') pixel
+  drawThickCircle screen x y r pixel n'
+
+drawThickLine screen x1 y1 x2 y2 pixel 0 = return ()
+drawThickLine screen x1 y1 x2 y2 pixel n = do
+  let n' = n-1
+  SDLP.line screen (x1) (y1-n') (x2) (y2-n') pixel
+  SDLP.line screen (x1) (y1+n') (x2) (y2+n') pixel
+  SDLP.line screen (x1-n') (y1) (x2-n') (y2) pixel
+  SDLP.line screen (x1+n') (y1) (x2+n') (y2) pixel
+  drawThickLine screen x1 y1 x2 y2 pixel n'
 
 -- * Painting functions
 displayMessage :: Surface -> Resources -> GameInfo -> IO()
