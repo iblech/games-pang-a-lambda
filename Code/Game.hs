@@ -35,6 +35,8 @@
 module Game (wholeGame) where
 
 -- External imports
+import Prelude hiding (id, (.))
+import Control.Category (id, (.))
 import Data.List
 import Data.Maybe
 import Debug.Trace
@@ -241,12 +243,12 @@ movingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
    -- To avoid errors, we check that the amplitude is non-zero, otherwise
    -- just pass the given position along.
    vx :: SF Double Double
-   vx = if hAmp /= 0 then osci px hAmp hPeriod else identity
+   vx = if hAmp /= 0 then (px +) ^<< osci hAmp hPeriod else identity
 
    -- To avoid errors, we check that the amplitude is non-zero, otherwise
    -- just pass the given position along.
    vy :: SF Double Double
-   vy = if vAmp /= 0 then osci py vAmp vPeriod else identity
+   vy = if vAmp /= 0 then (py +) ^<< osci vAmp vPeriod else identity
 
 -- | Generic block builder, given a name, a size and its base
 -- position.
@@ -668,12 +670,13 @@ restartOn sf sfc = switch (sf &&& sfc)
 
 -- Alternative implementation using rec that I think Henrik
 -- will like much more.
-osci x0 amp period = proc _ -> do
-
+--
+-- Assumptions:
+--    mass             = 1 unit
+--    initial velocity = 0
+osci amp period = proc _ -> do
   rec
-   let acc = - (2.0*pi/period)^(2 :: Int) * (x' - x0)
-   v  <- integral -< acc
-   pd <- integral -< v
-   let x' = x0 + amp + pd
-
-  returnA -< x'
+   let acc = - (2.0*pi/period)^(2 :: Int) * p
+   v <-             integral -< acc
+   p <- (amp +) ^<< integral -< v
+  returnA -< p
