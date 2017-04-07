@@ -175,6 +175,7 @@ executable phd-nott-hudakgame
                    GameState
                    Input
                    Objects
+                   Objects.Walls
                    ObjectSF
                    Resources
 
@@ -184,6 +185,7 @@ executable phd-nott-hudakgame
                    Data.Extra.Num
                    Data.Extra.Ord
                    Data.Extra.VectorSpace
+                   FRP.Yampa.Extra
                    Graphics.UI.Extra.SDL
                    Physics.TwoDimensions.Collisions
                    Physics.TwoDimensions.Dimensions

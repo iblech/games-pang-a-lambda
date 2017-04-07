@@ -41,11 +41,13 @@ import Data.List
 import Data.Maybe
 import Debug.Trace
 import FRP.Yampa
+import FRP.Yampa.Extra
 import FRP.Yampa.Switches
 
 -- General-purpose internal imports
 import Data.Extra.Ord
 import Data.Extra.VectorSpace
+import Physics.Oscillator
 import Physics.TwoDimensions.Collisions       as Collisions
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.GameCollisions
@@ -58,6 +60,7 @@ import GameState
 import Input
 import Objects
 import ObjectSF
+import Objects.Walls
 
 -- * General state transitions
 
@@ -591,92 +594,3 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
        -- Initial velocity, reset when the user requests it.
        startAs v0  = switch (constant v0 &&& restartCond)
                             (\_ -> startAs (0,0))
-
--- *** Walls
-
--- | Walls. Each wall has a side and a position.
---
--- NOTE: They are considered game objects instead of having special treatment.
--- The function that turns walls into 'Shape's for collision detection
--- determines how big they really are. In particular, this has implications in
--- ball-through-paper effects (ball going through objects, potentially never
--- coming back), which can be seen if the FPS suddently drops due to CPU load
--- (for instance, if a really major Garbage Collection kicks in.  One potential
--- optimisation is to trigger these with every SF iteration or every rendering,
--- to decrease the workload and thus the likelyhood of BTP effects.
-objSideRight  :: ObjectSF
-objSideRight  = objWall "rightWall"  RightSide  (gameWidth, 0)
-
--- | See 'objSideRight'.
-objSideLeft   :: ObjectSF
-objSideLeft   = objWall "leftWall"   LeftSide   (0, 0)
-
--- | See 'objSideRight'.
-objSideTop    :: ObjectSF
-objSideTop    = objWall "topWall"    TopSide    (0, 0)
-
--- | See 'objSideRight'.
-objSideBottom :: ObjectSF
-objSideBottom = objWall "bottomWall" BottomSide (0, gameHeight)
-
--- | Generic wall builder, given a name, a side and its base
--- position.
-objWall :: ObjectName -> Side -> Pos2D -> ObjectSF
-objWall name side pos = arr $ \(ObjectInput ci cs) ->
-  Object { objectName           = name
-         , objectKind           = Side side
-         , objectPos            = pos
-         , objectVel            = (0,0)
-         , canCauseCollisions   = False
-         , collisionEnergy      = 0
-         }
-
--- * Auxiliary FRP stuff
-maybeToEvent :: Maybe a -> Event a
-maybeToEvent = maybe noEvent Event
-
--- ** ListSF that never dies or produces offspring
-inertSF :: SF a b -> ListSF a b
-inertSF sf = ListSF (sf >>> arr (\o -> (o, False, [])))
-
--- ** Event-producing SF combinators
-spikeOn :: SF a Bool -> SF a (Event ())
-spikeOn sf = noEvent --> (sf >>> edge)
-
-ifDiff :: Eq a => a -> SF a (Event a)
-ifDiff x = loopPre x $ arr $ \(x',y') ->
-  if x' == y'
-   then (noEvent,  x')
-   else (Event x', x')
-
--- ** Repetitive switching
-
-repeatSF :: (c -> SF a (b, Event c)) -> c -> SF a b
-repeatSF sf c = switch (sf c) (repeatSF sf)
-
-restartOn :: SF a b -> SF a (Event c) -> SF a b
-restartOn sf sfc = switch (sf &&& sfc)
-                          (\_ -> restartOn sf sfc)
-
--- * Physics
-
--- Thanks to Manuel Bärenz for this SF:
--- osci x0 amp period = loopPre (x0 + amp) $ proc ((), x) -> do
---   let acc = - (2.0*pi/period)^(2 :: Int) * (x - x0)
---   v  <- integral -< acc
---   pd <- integral -< v
---   let x' = x0 + amp + pd
---   returnA -< trace (show (acc, v, x, pd)) (x', x')
-
--- Alternative implementation using rec that I think Henrik
--- will like much more.
---
--- Assumptions:
---    mass             = 1 unit
---    initial velocity = 0
-osci amp period = proc _ -> do
-  rec
-   let acc = - (2.0*pi/period)^(2 :: Int) * p
-   v <-             integral -< acc
-   p <- (amp +) ^<< integral -< v
-  returnA -< p
