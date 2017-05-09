@@ -5,6 +5,7 @@
 module Objects where
 
 import Control.Arrow ((***))
+import Data.Maybe (listToMaybe)
 import FRP.Yampa.VectorSpace
 
 import qualified Physics.TwoDimensions.Collisions      as C
@@ -34,6 +35,8 @@ data Object = Object { objectName           :: !ObjectName
                      }
  deriving (Show)
 
+findPlayer = listToMaybe . filter isPlayer
+
 isBall :: Object -> Bool
 isBall o = case objectKind o of
   Ball _ -> True
@@ -45,11 +48,11 @@ isPlayer o = case objectKind o of
   _         -> False
 
 -- | The kind of object and any size properties.
-data ObjectKind = Ball   Double -- radius
-                | Player PlayerState Int {- lives -} Bool {- Vulnerable -} Int {- energy -}
-                | Side   Side
+data ObjectKind = Ball   !Double -- radius
+                | Player !PlayerState !Int {- lives -} !Bool {- Vulnerable -} !Int {- energy -}
+                | Side   !Side
                 | Projectile
-                | Block Size2D
+                | Block  !Size2D
                 -- | PowerUp PowerUp
   deriving (Show,Eq)
 
@@ -58,6 +61,10 @@ data PlayerState = PlayerRight
                  | PlayerStand
   deriving (Eq, Show)
 
+playerEnergy :: Object -> Int
+playerEnergy o = case objectKind o of
+  p@(Player _ _ _ e) -> e
+  _                  -> 0
 
 -- Partial function!
 objectSize :: Object -> Size2D

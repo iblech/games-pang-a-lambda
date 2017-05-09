@@ -132,11 +132,14 @@ limitHistory' curT maxT sf' = SF' $ \dt a -> let curT' = curT + dt
                                                   else let (sf'', b) = sfTF' sf' dt a
                                                        in (limitHistory' time' maxT sf'', b)
 
-clocked :: (DTime -> a -> DTime) -> SF a b -> SF a b
-clocked clockF sf = SF $ \a -> let (sf', b) = sfTF sf a
-                               in (clocked' clockF sf', b)
+clocked :: SF a DTime -> SF a b -> SF a b
+clocked clockSF sf = SF $ \a -> let (sf', b)  = sfTF sf a
+                                    (cSF', _) = sfTF clockSF a
+                                in (clocked' cSF' sf', b)
 
-clocked' :: (DTime -> a -> DTime) -> SF' a b -> SF' a b
-clocked' clockF sf = SF' $ \dt a -> let dt' = clockF dt a
-                                        (sf', b) = sfTF' sf dt' a
-                                    in (clocked' clockF sf', b)
+clocked' :: SF' a DTime -> SF' a b -> SF' a b
+clocked' clockSF sf = SF' $ \dt a -> let (cSF', dt') = sfTF' clockSF dt a
+                                         (sf', b) = sfTF' sf dt' a
+                                     in (clocked' cSF' sf', b)
+
+deltas = localTime >>> loopPre 0 (arr $ \(lt, ot) -> (lt-ot, lt))

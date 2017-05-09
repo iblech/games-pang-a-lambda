@@ -3,6 +3,7 @@ module Display where
 
 import           Control.Arrow              ((***))
 import           Control.Monad
+import           Data.Maybe (fromJust)
 import           FRP.Yampa.VectorSpace
 import           Graphics.UI.SDL            as SDL
 import qualified Graphics.UI.SDL.Primitives as SDLP
@@ -72,7 +73,7 @@ render resources shownState = do
     mapM_ (paintShape  screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
   -- Paint HUD
-  displayInfo screen resources (gameInfo shownState)
+  displayInfo screen resources (gameInfo shownState) (gameObjects shownState)
 
   -- Paint messages/popups (eg. "Paused", "Level 0", etc.)
   displayMessage screen resources (gameInfo shownState)
@@ -81,10 +82,15 @@ render resources shownState = do
   SDL.flip screen
 
 -- * Painting functions
-displayInfo :: Surface -> Resources -> GameInfo -> IO()
-displayInfo screen resources over = do
+displayInfo :: Surface -> Resources -> GameInfo -> Objects -> IO()
+displayInfo screen resources over objs = do
   printAlignRight screen resources
-    ("Time: " ++ printf "%.3f" (gameTime over)) (10,50)
+    ("Time: " ++ printf "%.2f" (gameTime over)) (10,50)
+  let p = findPlayer objs
+  case p of
+    Just p' -> let e = playerEnergy p'
+               in printAlignRight screen resources ("Energy: " ++ show e) (10,100)
+    Nothing -> return ()
 
 paintObject :: Surface -> Resources -> Double -> Object -> IO ()
 paintObject screen resources time object =

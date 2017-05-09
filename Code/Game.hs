@@ -143,10 +143,41 @@ outOfEnemies = arr outOfEnemies'
 -- The internal accumulator holds the last known collisions (discarded at every
 -- iteration).
 
+playerEnergy'' :: Objects -> Int
+playerEnergy'' objs = 
+  let p = findPlayer objs
+  in case p of
+      Just p' -> playerEnergy p'
+      Nothing -> 0
+
+gameTimeSF = proc (_, (_, e)) -> do
+   dt <- deltas -< ()
+   let dt' = if e < 0 && dt < 0 then (-dt) else dt
+   returnA -< dt'
+
 gamePlay :: [ListSF ObjectInput Object] -> SF Controller (Objects, Time)
-gamePlay objs = loopPre [] $
+gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlay' objs)
   -- Process physical movement and detect new collisions
-  proc (input, cs) -> do
+     -- -- Adapt Input
+     -- let oi = ObjectInput input cs
+
+     -- -- Step
+     -- -- Each obj processes its movement forward
+     -- ol  <- dlSwitch objs -< oi
+     -- let cs' = detectCollisions ol
+
+     -- let energyLeft = playerEnergy'' ol
+
+     -- -- Output
+     -- tLeft   <- time -< ()
+     -- returnA -< ((ol, tLeft), (cs', energyLeft))
+
+-- gamePlay' :: SF (Controller, (Collisions, Int)) ((Objects, Time), (Collisions, Int))
+gamePlay' :: [ListSF ObjectInput Object]
+          -> SF (Controller, (Objects.Collisions, Int))
+                (([Object], Time), (Collisions.Collisions String, Int))
+gamePlay' objs = 
+  proc (input, (cs, el)) -> do
      -- Adapt Input
      let oi = ObjectInput input cs
 
@@ -155,9 +186,11 @@ gamePlay objs = loopPre [] $
      ol  <- dlSwitch objs -< oi
      let cs' = detectCollisions ol
 
+     let eleft = playerEnergy'' ol
+
      -- Output
      tLeft   <- time -< ()
-     returnA -< ((ol, tLeft), cs')
+     returnA -< ((ol, tLeft), (cs', eleft))
 
 -- * Game objects
 --
@@ -346,11 +379,13 @@ player lives name p0 vul = ListSF $ proc i -> do
   let newPlayer   = [ player (lives-1) name p0 False
                     | dead  && lives > 0 ]
 
-  let energy = 1
+  dt <- deltas -< ()
+  energy <- loopPre 5 (arr (dup . max 0 . min 5 . sumTime)) -< dt
+  --  max 0 (min 5 (round (fromIntegral (playerEnergy'' ol) + dt)))
 
   -- Final player
   returnA -< (Object { objectName           = name
-                     , objectKind           = Player state lives vulnerable energy
+                     , objectKind           = Player state lives vulnerable (round energy)
                      , objectPos            = ppos
                      , objectVel            = pvel
                      , canCauseCollisions   = True
@@ -358,6 +393,9 @@ player lives name p0 vul = ListSF $ proc i -> do
                      }
              , dead
              , newF1Arrows ++ newPlayer)
+
+sumTime :: (DTime, DTime) -> DTime
+sumTime (dt, e) = e + dt
 
 playerState :: Controller -> PlayerState
 playerState controller =
