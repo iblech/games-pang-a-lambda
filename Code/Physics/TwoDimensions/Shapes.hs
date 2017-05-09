@@ -56,6 +56,7 @@ overlapShape (Rectangle p1 s1) (SemiPlane p2 side2) =
 overlapShape p@(SemiPlane _ _) r@(Rectangle _ _) = overlapShape r p
 overlapShape _                 _                 = False -- Not really, it's just that we don't care
 
+semiplaneRectangle :: Pos2D -> Side -> (Pos2D, (Double, Double))
 semiplaneRectangle p2 s2 =  case s2 of
   LeftSide   -> (p2 ^-^ (100, 100), (100,   height + 200))
   RightSide  -> (p2 ^-^ (0,   100), (100,   height + 200))

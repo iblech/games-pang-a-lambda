@@ -82,7 +82,7 @@ render resources shownState = do
 
 -- * Painting functions
 displayInfo :: Surface -> Resources -> GameInfo -> IO()
-displayInfo screen resources over =
+displayInfo screen resources over = do
   printAlignRight screen resources
     ("Time: " ++ printf "%.3f" (gameTime over)) (10,50)
 
@@ -114,7 +114,7 @@ paintObject screen resources time object =
           (w,h)    = (round *** round) sz
       fillRect screen (Just (Rect x y w h)) (Pixel blockColor)
 
-    (Player state _ vulnerable) -> do
+    (Player state _ vulnerable energy) -> do
       let blinkOn  = vulnerable || (even (round (time * 10)))
       when blinkOn $ do
 

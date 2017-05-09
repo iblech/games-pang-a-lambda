@@ -1,6 +1,7 @@
 import Control.Applicative
 import Data.IORef
 import FRP.Yampa as Yampa
+import System.Mem
 
 import Game
 import Display
@@ -26,6 +27,7 @@ main = do
                 return (if controllerPause mInput then 0 else dtSecs, Just mInput)
              )
              (\_ (e,c) -> do render res e
+                             performGC
                              return (controllerExit c)
              )
              (wholeGame &&& arr id)
@@ -37,3 +39,4 @@ senseTime timeRef = \mInput ->
       tt2 = if controllerFast      mInput then (*10)      else tt1
       tt3 = if controllerReverse   mInput then (\x -> -x) else id
   in (tt3 . tt2 . milisecsToSecs) <$> senseTimeRef timeRef
+

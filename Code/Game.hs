@@ -1,4 +1,4 @@
-{-# LANGUAGE Arrows #-}
+{-# LANGUAGE Arrows     #-}
 -- | This module defines the game as a big Signal Function that transforms a
 -- Signal carrying a Input 'Controller' information into a Signal carrying
 -- 'GameState'.
@@ -40,7 +40,8 @@ import Control.Category (id, (.))
 import Data.List
 import Data.Maybe
 import Debug.Trace
-import FRP.Yampa
+import FRP.Yampa -- as Yampa
+-- import FRP.Yampa.InternalCore
 import FRP.Yampa.Extra
 import FRP.Yampa.Switches
 
@@ -67,8 +68,9 @@ import Objects.Walls
 -- | Run the game that the player can lose at until ('switch') the player is
 -- completely dead, and then restart the game.
 wholeGame :: SF Controller GameState
-wholeGame = switch (level 0 >>> (identity &&& playerDead))
-                   (\_ -> wholeGame)
+wholeGame = forgetPast $ 
+   switch (level 0 >>> (identity &&& playerDead))
+                     (\_ -> wholeGame)
 
 -- * Game over
 
@@ -86,8 +88,8 @@ playerDead' gs = gamePlaying && dead
 
    -- Player dead if it has no more lives left
    playerIsDead o = case objectKind o of
-     (Player _ lives _) -> lives < 0
-     otherwise          -> False
+     (Player _ lives _ _) -> lives < 0
+     otherwise            -> False
 
    -- This is only defined when the game is in progress.
    gamePlaying = GamePlaying == gameStatus (gameInfo gs)
@@ -101,7 +103,8 @@ level n = switch
 
 -- | Play a level till completed, then move on to the next level.
 levelLoaded :: Int -> SF Controller GameState
-levelLoaded n = switch
+levelLoaded n = limitHistory 5 $
+ switch
   (playLevel n >>> (identity &&& outOfEnemies))
   (\_ -> level (n + 1))
 
@@ -288,10 +291,10 @@ gun name = normalGun name
 -- *** Normal gun, fires one shot at a time
 
 normalGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-normalGun name = switch (constant [] &&& gunFired name)
-                        (\fireLSF -> blockedGun name fireLSF)
+normalGun name = revSwitch (constant [] &&& gunFired name)
+                           (\fireLSF -> blockedGun name fireLSF)
 
-blockedGun name fsf = switch (([fsf] --> constant []) &&& fireDead fsf)
+blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& fireDead fsf)
                              (\_ -> normalGun name)
 
 fireDead fsf = proc (oi, _) -> do
@@ -334,17 +337,20 @@ player lives name p0 vul = ListSF $ proc i -> do
                 $ collisionMask name ("ball" `isPrefixOf`)
                 $ collisions i
 
-  vulnerable <- switch (constant vul &&& after 2 ())
-                       (\_ -> constant True) -< ()
+  vulnerable <- alwaysForward $ 
+                  switch (constant vul &&& after 2 ())
+                         (\_ -> constant True) -< ()
 
   dead <- isEvent ^<< edge -< hitByBall && vulnerable
 
   let newPlayer   = [ player (lives-1) name p0 False
                     | dead  && lives > 0 ]
 
+  let energy = 1
+
   -- Final player
   returnA -< (Object { objectName           = name
-                     , objectKind           = Player state lives vulnerable
+                     , objectKind           = Player state lives vulnerable energy
                      , objectPos            = ppos
                      , objectVel            = pvel
                      , canCauseCollisions   = True
@@ -380,7 +386,7 @@ playerProgress pid p0 = proc i -> do
   let ev = changedVelocity pid collisionsWithBlocks
       vc = fromMaybe v ev
 
-  (px,py) <- (p0 ^+^) ^<< integral -< vc
+  (px,py) <- (p0 ^+^) ^<< alwaysForward integral -< vc
 
   -- Calculate actual velocity based on corrected/capped position
   v' <- derivative -< (px, py)
@@ -417,7 +423,7 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
   let y = min height yT
 
   -- Delay death if the fire is "sticky"
-  hit <- switch (never &&& fireHitCeiling) (\_ -> stickyDeath sticky) -< y
+  hit <- revSwitch (never &&& fireHitCeiling) (\_ -> stickyDeath sticky) -< y
 
   hitBall  <- arr (fireCollidedWithBall  name) -< collisions i
   hitBlock <- arr (fireCollidedWithBlock name) -< collisions i
@@ -495,7 +501,7 @@ ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
 -- collision and corrected velocity, and starts again.
 --
 bouncingBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
-bouncingBall size bid p0 v0 = repeatSF (progressAndBounce size bid) (p0, v0)
+bouncingBall size bid p0 v0 = repeatRevSF (progressAndBounce size bid) (p0, v0)
 
 -- | Calculate the future tentative position, and bounce if necessary. Pass on
 -- snapshot of ball position and velocity if bouncing.
@@ -592,5 +598,5 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
                    returnA -< vFinal
 
        -- Initial velocity, reset when the user requests it.
-       startAs v0  = switch (constant v0 &&& restartCond)
-                            (\_ -> startAs (0,0))
+       startAs v0  = revSwitch (constant v0 &&& restartCond)
+                               (\_ -> startAs (0,0))

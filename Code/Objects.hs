@@ -46,7 +46,7 @@ isPlayer o = case objectKind o of
 
 -- | The kind of object and any size properties.
 data ObjectKind = Ball   Double -- radius
-                | Player PlayerState Int {- lives -} Bool {- Vulnerable -}
+                | Player PlayerState Int {- lives -} Bool {- Vulnerable -} Int {- energy -}
                 | Side   Side
                 | Projectile
                 | Block Size2D
