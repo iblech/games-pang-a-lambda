@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE Arrows     #-}
 -- | This module defines the game as a big Signal Function that transforms a
 -- Signal carrying a Input 'Controller' information into a Signal carrying
@@ -103,10 +104,38 @@ level n = switch
 
 -- | Play a level till completed, then move on to the next level.
 levelLoaded :: Int -> SF Controller GameState
-levelLoaded n = limitHistory 5 $
- switch
+levelLoaded n = switch
   (playLevel n >>> (identity &&& outOfEnemies))
   (\_ -> level (n + 1))
+
+timeProgression :: SF Controller (DTime -> DTime)
+timeProgression = slowDown
+ -- proc (c) -> do
+ --  let rev  = if controllerReverse c then ((-1)*) else id
+ --  returnA -< rev
+
+slowDown :: SF Controller (DTime -> DTime)
+slowDown = proc (c) -> do
+  rec let slow = controllerReverse c
+          unit = if | power' >= 0 && slow -> (-1)
+                    | power' >= maxPower  -> 0
+                    | otherwise           -> 1
+      power <- (maxPower +) ^<< integral -< unit
+      let power' = min maxPower (max 0 power)
+          dtF    = if slow && (power' > 0) then (0.1*) else id
+  returnA -< dtF
+ where
+   maxPower :: Double
+   maxPower = 5
+
+
+timeProgression' :: SF ObjectInput (DTime -> DTime)
+timeProgression' = arr userInput >>> stopClock
+
+stopClock :: SF Controller (DTime -> DTime)
+stopClock = switch (arr controllerHalt >>> arr (\c' -> if c' then (const 0, Event ()) else (id, noEvent)))
+                   (\_ -> switch (constant (const 0) &&& after 25 ())
+                                 (\_ -> stopClock))
 
 -- | Produce a constant game state of loading a particular level.
 levelLoading :: Int -> SF a GameState
@@ -114,7 +143,18 @@ levelLoading n = constant (GameState [] (GameInfo 0 n GameLoading))
 
 -- | Play one level indefinitely (it never ends or restarts).
 playLevel :: Int -> SF Controller GameState
-playLevel n = gamePlay (initialObjects n) >>^ composeGameState
+playLevel n =  playLevel' n 
+  -- checkpoint $ proc (c) -> do
+  -- take    <- edge <<^ controllerCheckPointSave -< c
+  -- restore <- edge <<^ controllerCheckPointRestore -< c
+  -- g       <- playLevel' n -< c
+  -- returnA -< (g, take, restore)
+
+playLevel' :: Int -> SF Controller GameState
+playLevel' n =  timeTransformSF timeProgression $ limitHistory 5 $ playLevel'' n
+
+playLevel'' :: Int -> SF Controller GameState
+playLevel'' n = gamePlay (initialObjects n) >>^ composeGameState
   where
     -- Compose GameState output from 'gamePlay's output
     composeGameState :: (Objects, Time) -> GameState
@@ -292,7 +332,7 @@ movingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
 -- | Generic block builder, given a name, a size and its base
 -- position.
 objBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
-objBlock name pos size = ListSF $ constant
+objBlock name pos size = ListSF $ timeTransformSF timeProgression' $ constant
   (Object { objectName           = name
           , objectKind           = Block size
           , objectPos            = pos
@@ -491,7 +531,7 @@ stickyDeath False = constant (Event ())
 -- *** Ball
 
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
-splittingBall size bid p0 v0 = ListSF $ proc i -> do
+splittingBall size bid p0 v0 = ListSF $ timeTransformSF timeProgression' $ proc i -> do
 
   -- Default, just bouncing behaviour
   bo <- bouncingBall size bid p0 v0 -< i
@@ -540,6 +580,7 @@ ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
 --
 bouncingBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
 bouncingBall size bid p0 v0 = repeatRevSF (progressAndBounce size bid) (p0, v0)
+
 
 -- | Calculate the future tentative position, and bounce if necessary. Pass on
 -- snapshot of ball position and velocity if bouncing.

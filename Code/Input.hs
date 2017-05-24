@@ -25,18 +25,21 @@ import Graphics.UI.Extra.SDL
 
 -- | Controller info at any given point.
 data Controller = Controller
-  { controllerPos        :: (Double, Double)
-  , controllerLeft       :: Bool
-  , controllerRight      :: Bool
-  , controllerClick      :: Bool
-  , controllerStop       :: Bool
-  , controllerPause      :: Bool
-  , controllerExit       :: Bool
-  , controllerFast       :: Bool
-  , controllerSlow       :: Bool
-  , controllerSuperSlow  :: Bool
-  , controllerReverse    :: Bool
-  , controllerFullscreen :: Bool
+  { controllerPos               :: (Double, Double)
+  , controllerLeft              :: Bool
+  , controllerRight             :: Bool
+  , controllerClick             :: Bool
+  , controllerStop              :: Bool
+  , controllerPause             :: Bool
+  , controllerExit              :: Bool
+  , controllerFast              :: Bool
+  , controllerSlow              :: Bool
+  , controllerSuperSlow         :: Bool
+  , controllerReverse           :: Bool
+  , controllerHalt              :: Bool
+  , controllerFullscreen        :: Bool
+  , controllerCheckPointSave    :: Bool
+  , controllerCheckPointRestore :: Bool
   }
 
 -- | Controller info at any given point, plus a pointer
@@ -62,7 +65,10 @@ initializeInputDevices = do
                                 False              -- Exit
                                 False False False  -- Speed control
                                 False              -- Reverse time
+                                False              -- Halt
                                 False              -- Fullscreen
+                                False              -- CheckpointSave
+                                False              -- CheckpointRestore
 
 -- | Sense from the controller, providing its current
 -- state. This should return a new Controller state
@@ -112,8 +118,14 @@ handleEvent c e =
     KeyUp   (Keysym { symKey = SDLK_x     }) -> c { controllerFast       = False }
     KeyDown (Keysym { symKey = SDLK_r     }) -> c { controllerReverse    = True  }
     KeyUp   (Keysym { symKey = SDLK_r     }) -> c { controllerReverse    = False }
+    KeyDown (Keysym { symKey = SDLK_t     }) -> c { controllerHalt       = True  }
+    KeyUp   (Keysym { symKey = SDLK_t     }) -> c { controllerHalt       = False }
     KeyDown (Keysym { symKey = SDLK_h     }) -> c { controllerStop       = True  }
     KeyUp   (Keysym { symKey = SDLK_h     }) -> c { controllerStop       = False }
+    KeyDown (Keysym { symKey = SDLK_c     }) -> c { controllerCheckPointSave = True  }
+    KeyUp   (Keysym { symKey = SDLK_c     }) -> c { controllerCheckPointSave = False }
+    KeyDown (Keysym { symKey = SDLK_v     }) -> c { controllerCheckPointRestore = True  }
+    KeyUp   (Keysym { symKey = SDLK_v     }) -> c { controllerCheckPointRestore = False }
     KeyDown (Keysym { symKey = SDLK_SPACE }) -> c { controllerClick      = True  }
     KeyUp   (Keysym { symKey = SDLK_SPACE }) -> c { controllerClick      = False }
     KeyDown (Keysym { symKey = SDLK_ESCAPE}) -> c { controllerExit       = True  }

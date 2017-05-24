@@ -86,26 +86,31 @@ alwaysForward' sf = SF' $ \dt a -> let (sf', b) = sfTF' sf (max dt (-dt)) a
                                    in (alwaysForward' sf', b)
 
 checkpoint :: SF a (b, Event (), Event ()) -> SF a b
-checkpoint sf = SF $ \a -> let (sf', (b, advance, reset)) = sfTF sf a
+checkpoint sf = SF $ \a -> let (sf', (b, save, reset)) = sfTF sf a
                            in case reset of
                                 Event () -> error "loop"
-                                NoEvent -> let pt = case advance of 
-                                                      Event () -> Left sf'
-                                                      NoEvent  -> Right sf
+                                NoEvent -> let pt = case save of 
+                                                      Event () -> Just (Right sf)
+                                                      NoEvent  -> Nothing
                                            in (checkpoint' pt sf', b)
 
-checkpoint' :: Either (SF' a (b, Event (), Event ())) (SF a (b, Event (), Event ()))
+checkpoint' :: Maybe (Either (SF' a (b, Event (), Event ())) (SF a (b, Event (), Event ())))
             -> (SF' a (b, Event (), Event ()))
             -> SF' a b
-checkpoint' rstPt sf' = SF' $ \dt a -> let (sf'', (b, advance, reset)) = sfTF' sf' dt a
+checkpoint' rstPt sf' = SF' $ \dt a -> let (sf'', (b, save, reset)) = sfTF' sf' dt a
                                        in case reset of
                                             Event () -> case rstPt of
-                                                          Left sf''' -> sfTF' (checkpoint' rstPt sf''') dt a
-                                                          Right sf   -> sfTF (checkpoint sf) a
-                                            NoEvent -> let pt = case advance of
-                                                                  Event () -> Left sf''
+                                                          Nothing    ->  let pt = case save of
+                                                                                    Event () -> Just (Left sf'')
+                                                                                    NoEvent -> rstPt
+                                                                         in pt `seq` (checkpoint' pt sf'', b) 
+
+                                                          Just (Left sf''') -> (checkpoint' rstPt sf''', b)
+                                                          Just (Right sf  ) -> sfTF (checkpoint sf) a
+                                            NoEvent -> let pt = case save of
+                                                                  Event () -> Just (Left sf'')
                                                                   NoEvent -> rstPt
-                                                       in (checkpoint' pt sf'', b) 
+                                                       in pt `seq` (checkpoint' pt sf'', b) 
 
 forgetPast sf = SF $ \a -> let (sf', b) = sfTF sf a
                            in (forgetPast' 0 sf', b)
@@ -143,3 +148,35 @@ clocked' clockSF sf = SF' $ \dt a -> let (cSF', dt') = sfTF' clockSF dt a
                                      in (clocked' cSF' sf', b)
 
 deltas = localTime >>> loopPre 0 (arr $ \(lt, ot) -> (lt-ot, lt))
+
+type Endo a = a -> a
+
+timeTransform :: Endo DTime -> SF a b -> SF a b
+timeTransform transform sf = SF tf
+ where tf a = let (sf', b) = (sfTF sf) a
+                  sf''     = timeTransformF transform sf'
+              in (sf'', b)
+
+timeTransformF :: Endo DTime -> SF' a b -> SF' a b
+timeTransformF transform sf = SF' tf
+ where tf dt a = let dt'      = transform dt
+                     (sf', b) = (sfTF' sf) dt' a
+                     sf''     = timeTransformF transform sf'
+                 in (sf'', b)
+
+timeTransformSF :: SF a (DTime -> DTime) -> SF a b -> SF a b
+timeTransformSF sfTime sf = SF tf
+ where tf a = let (sf', b) = (sfTF sf) a
+                  (sfTime',_) = (sfTF sfTime) a
+                  sf''     = timeTransformSF' sfTime' sf'
+              in (sf'', b)
+
+
+timeTransformSF' :: SF' a (DTime -> DTime) -> SF' a b -> SF' a b
+timeTransformSF' sfTime sf = SF' tf
+ where tf dt a = let (sfTime', transform) = (sfTF' sfTime) dt a
+                     dt'      = transform dt
+                     (sf', b) = (sfTF' sf) dt' a
+                     sf''     = timeTransformSF' sfTime' sf'
+                 in (sf'', b)
+    
