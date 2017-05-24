@@ -10,7 +10,7 @@ license-file:        LICENSE
 author:              Ivan Perez
 maintainer:          ivan.perez@keera.co.uk
 -- copyright:
-category:            Game
+category:            Game, FRP, Animation, Yampa
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.16
