@@ -109,10 +109,10 @@ levelLoaded n = switch
   (\_ -> level (n + 1))
 
 timeProgression :: SF Controller (DTime -> DTime)
-timeProgression = slowDown
- -- proc (c) -> do
- --  let rev  = if controllerReverse c then ((-1)*) else id
- --  returnA -< rev
+timeProgression = -- slowDown
+  proc (c) -> do
+   let rev  = if controllerReverse c then ((-1)*) else id
+   returnA -< rev
 
 slowDown :: SF Controller (DTime -> DTime)
 slowDown = proc (c) -> do
@@ -439,10 +439,11 @@ sumTime (dt, e) = e + dt
 
 playerState :: Controller -> PlayerState
 playerState controller =
-  case (controllerLeft controller, controllerRight controller) of
-    (True, _)    -> PlayerLeft
-    (_,    True) -> PlayerRight
-    _            -> PlayerStand
+  case (controllerLeft controller, controllerRight controller, controllerClick controller) of
+    (_,    _, True) -> PlayerShooting
+    (True, _, _)    -> PlayerLeft
+    (_,    True, _) -> PlayerRight
+    _               -> PlayerStand
 
 playerName :: String
 playerName = "player"
@@ -481,9 +482,10 @@ playerProgress pid p0 = proc i -> do
    getVelocity pstate = stateVel pstate &&& stateChanged pstate
 
    stateVel :: PlayerState -> SF a Vel2D
-   stateVel PlayerLeft  = constant (-playerSpeed, 0)
-   stateVel PlayerRight = constant (playerSpeed,  0)
-   stateVel PlayerStand = constant (0,            0)
+   stateVel PlayerLeft     = constant (-playerSpeed, 0)
+   stateVel PlayerRight    = constant (playerSpeed,  0)
+   stateVel PlayerStand    = constant (0,            0)
+   stateVel PlayerShooting = constant (0,            0)
 
    stateChanged :: PlayerState -> SF Controller (Event PlayerState)
    stateChanged oldState = arr playerState >>> ifDiff oldState

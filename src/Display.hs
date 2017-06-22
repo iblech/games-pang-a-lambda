@@ -3,9 +3,11 @@ module Display where
 
 import           Control.Arrow              ((***))
 import           Control.Monad
+import           Data.IORef
 import           Data.Maybe (fromJust)
 import           FRP.Yampa.VectorSpace
 import           Graphics.UI.SDL            as SDL
+import           Graphics.UI.SDL.Image      as SDL
 import qualified Graphics.UI.SDL.Primitives as SDLP
 import qualified Graphics.UI.SDL.TTF        as TTF
 import           Graphics.UI.Extra.SDL      as SDL
@@ -17,13 +19,15 @@ import Objects
 import Resources
 import Physics.TwoDimensions.Shapes
 
+
+
 -- | Ad-hoc resource loading
 -- This function is ad-hoc in two senses: first, because it
 -- has the paths to the files hard-coded inside. And second,
 -- because it loads the specific resources that are needed,
 -- so it's not a general, parameterised, scalable solution.
 --
-loadResources :: IO Resources
+loadResources :: IO (IORef Resources)
 loadResources = do
   -- Font initialization
   _ <- TTF.init
@@ -36,15 +40,43 @@ loadResources = do
   let gameFont = "data/lacuna.ttf"
   font2  <- TTF.openFont gameFont 8 -- 32: fixed size?
 
+  backImages <- mapM (SDL.load) ["data/back.png"]
+  hitImages  <- mapM (SDL.load) ["data/hit1.png", "data/hit2.png"]
+  walkLeftImages <- mapM (SDL.load) [ "data/left-p3_walk01.png"
+                                    , "data/left-p3_walk02.png"
+                                    , "data/left-p3_walk03.png"
+                                    , "data/left-p3_walk04.png"
+                                    , "data/left-p3_walk05.png"
+                                    , "data/left-p3_walk06.png"
+                                    , "data/left-p3_walk07.png"
+                                    , "data/left-p3_walk08.png"
+                                    , "data/left-p3_walk09.png"
+                                    , "data/left-p3_walk10.png"
+                                    , "data/left-p3_walk11.png"
+                                    ]
+  walkRightImages <- mapM (SDL.load) [ "data/p3_walk01.png"
+                                     , "data/p3_walk02.png"
+                                     , "data/p3_walk03.png"
+                                     , "data/p3_walk04.png"
+                                     , "data/p3_walk05.png"
+                                     , "data/p3_walk06.png"
+                                     , "data/p3_walk07.png"
+                                     , "data/p3_walk08.png"
+                                     , "data/p3_walk09.png"
+                                     , "data/p3_walk10.png"
+                                     , "data/p3_walk11.png"
+                                     ]
+  standingImages <- mapM (SDL.load) ["data/standing.png"]
+
   -- Return all resources (just the font)
-  return $ Resources font font2
+  newIORef $ Resources font font2 standingImages walkRightImages walkLeftImages backImages hitImages
 
 initializeDisplay :: IO ()
 initializeDisplay =
    -- Initialise SDL
   SDL.init [InitEverything]
 
-initGraphs :: Resources -> IO ()
+initGraphs :: IORef Resources -> IO ()
 initGraphs _res = do
   screen <- SDL.setVideoMode (round width) (round height) 32 [SWSurface]
   SDL.setCaption gameName ""
@@ -58,7 +90,7 @@ initGraphs _res = do
 
   return ()
 
-render :: Resources -> GameState -> IO()
+render :: IORef Resources -> GameState -> IO()
 render resources shownState = do
   -- Obtain surface
   screen <- getVideoSurface
@@ -82,18 +114,19 @@ render resources shownState = do
   SDL.flip screen
 
 -- * Painting functions
-displayInfo :: Surface -> Resources -> GameInfo -> Objects -> IO()
-displayInfo screen resources over objs = do
-  printAlignRight screen resources
+displayInfo :: Surface -> IORef Resources -> GameInfo -> Objects -> IO()
+displayInfo screen resRef over objs = do
+  printAlignRight screen resRef
     ("Time: " ++ printf "%.2f" (gameTime over)) (10,50)
   let p = findPlayer objs
   case p of
     Just p' -> let e = playerEnergy p'
-               in printAlignRight screen resources ("Energy: " ++ show e) (10,100)
+               in printAlignRight screen resRef ("Energy: " ++ show e) (10,100)
     Nothing -> return ()
 
-paintObject :: Surface -> Resources -> Double -> Object -> IO ()
-paintObject screen resources time object =
+paintObject :: Surface -> IORef Resources -> Double -> Object -> IO ()
+paintObject screen resRef time object = do
+  resources <- readIORef resRef
   case objectKind object of
     (Side {}) -> return ()
     (Ball ballSize) -> do
@@ -130,16 +163,27 @@ paintObject screen resources time object =
             (x',y')  = (round *** round) ((px,py) ^+^ (0.1 *^ (vx, -vy)))
             (w,h)    = (round playerWidth, round playerHeight)
             playerColor = case (state, vulnerable) of
-                            (PlayerRight, True)  -> playerRightColor
-                            (PlayerLeft , True)  -> playerLeftColor
-                            (PlayerStand, True)  -> playerStandColor
-                            (PlayerRight, False) -> playerBlinkRightColor
-                            (PlayerLeft , False) -> playerBlinkLeftColor
-                            (PlayerStand, False) -> playerBlinkStandColor
+                            (PlayerShooting, True)  -> playerRightColor
+                            (PlayerRight,    True)  -> playerRightColor
+                            (PlayerLeft ,    True)  -> playerLeftColor
+                            (PlayerStand,    True)  -> playerStandColor
+                            (PlayerRight,    False) -> playerBlinkRightColor
+                            (PlayerLeft ,    False) -> playerBlinkLeftColor
+                            (PlayerStand,    False) -> playerBlinkStandColor
+            playerImage = case (state, vulnerable) of
+                            (PlayerShooting, True)  -> head (shootingImage resources) 
+                            (PlayerRight,    True)  -> head (rightImage    resources) 
+                            (PlayerLeft ,    True)  -> head (leftImage     resources) 
+                            (PlayerStand,    True)  -> head (standingImage resources)
+                            (PlayerShooting, False) -> head (shootingImage resources) 
+                            (PlayerRight,    False) -> head (rightImage    resources) 
+                            (PlayerLeft ,    False) -> head (leftImage     resources) 
+                            (PlayerStand,    False) -> head (standingImage resources)
 
         fillRect screen (Just (Rect x y w h)) (Pixel playerColor)
+        blitSurface playerImage Nothing screen (Just (Rect x y (-1) (-1)))
 
-        _ <- SDLP.line screen (fromIntegral x) (fromIntegral y) x' y' (SDL.Pixel velColor)
+        -- _ <- SDLP.line screen (fromIntegral x) (fromIntegral y) x' y' (SDL.Pixel velColor)
 
         -- Print position
         let font = miniFont resources
@@ -158,7 +202,7 @@ paintObject screen resources time object =
         fillRect screen (Just (Rect x0' y0' dx' dy')) (Pixel fireColor)
         return ()
 
-paintShape :: Surface -> Resources -> Double -> Object -> IO ()
+paintShape :: Surface -> IORef Resources -> Double -> Object -> IO ()
 paintShape screen resources time object =
  paintShape' screen resources time (objShape object)
 
@@ -208,22 +252,22 @@ drawThickLine screen x1 y1 x2 y2 pixel n = do
   drawThickLine screen x1 y1 x2 y2 pixel n'
 
 -- * Painting functions
-displayMessage :: Surface -> Resources -> GameInfo -> IO()
+displayMessage :: Surface -> IORef Resources -> GameInfo -> IO()
 displayMessage screen resources info = case gameStatus info of
   GameLoading ->
     printAlignCenter screen resources ("Level " ++ show (gameLevel info))
   _ -> return ()
 
 -- * Render text with alignment
-printAlignRight :: Surface -> Resources -> String -> (Int, Int) -> IO ()
+printAlignRight :: Surface -> IORef Resources -> String -> (Int, Int) -> IO ()
 printAlignRight screen resources msg (x,y) = void $ do
-  let font = resFont resources
+  font <- resFont <$> readIORef resources
   message <- TTF.renderTextSolid font msg fontColor
   renderAlignRight screen message (x,y)
 
 -- * Render text with alignment
-printAlignCenter :: Surface -> Resources -> String -> IO ()
+printAlignCenter :: Surface -> IORef Resources -> String -> IO ()
 printAlignCenter screen resources msg = void $ do
-  let font = resFont resources
+  font <- resFont <$> readIORef resources
   message <- TTF.renderTextSolid font msg fontColor
   renderAlignCenter screen message

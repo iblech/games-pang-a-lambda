@@ -50,10 +50,10 @@ velColor  :: Word32
 velColor  = 0xCCBBFFFF
 
 playerWidth :: Double
-playerWidth = 30
+playerWidth = 65
 
 playerHeight :: Double
-playerHeight = 80
+playerHeight = 92
 
 fireColor :: Word32
 fireColor = 0xFFDDC34F

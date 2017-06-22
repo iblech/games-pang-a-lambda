@@ -183,6 +183,7 @@ executable pang-a-lambda
                    Yampa >=0.9.6 && <0.11,
 
                    SDL -any,
+                   SDL-image -any,
                    SDL-gfx -any,
                    SDL-ttf -any
     default-language:    Haskell2010

@@ -59,6 +59,7 @@ data ObjectKind = Ball   !Double -- radius
 data PlayerState = PlayerRight
                  | PlayerLeft
                  | PlayerStand
+                 | PlayerShooting
   deriving (Eq, Show)
 
 playerEnergy :: Object -> Int
