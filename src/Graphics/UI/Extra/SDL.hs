@@ -56,7 +56,7 @@ renderAlignRight screen surface (x,y) = void $ do
 renderAlignCenter :: Surface -> Surface -> IO ()
 renderAlignCenter screen surface = void $ do
   let tWidth  = surfaceGetWidth screen
-      tHeight = surfaceGetWidth screen
+      tHeight = surfaceGetHeight screen
       w       = surfaceGetWidth  surface
       h       = surfaceGetHeight surface
       px      = (tWidth - w) `div` 2

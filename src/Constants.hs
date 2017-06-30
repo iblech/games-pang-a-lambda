@@ -9,7 +9,7 @@ gameName = "Break-a-ball"
 width :: Double
 width  = 1024
 height :: Double
-height = 600
+height = 512
 
 gameWidth :: Double
 gameWidth = width

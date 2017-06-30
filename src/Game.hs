@@ -286,13 +286,13 @@ objEnemies n =
 
 -- | List of blocks depending on the level.
 blocks :: Int -> [ListSF ObjectInput Object]
-blocks 0 = [ objBlock    "block1" (200, 55)  (100, 50)               ]
-blocks 1 = [ movingBlock "block1" (400, 200) (100, 50) 200 10   0  0 ]
-blocks 2 = [ movingBlock "block1" (400, 200) (100, 50) 0    0 100 10 ]
-blocks 3 = [ movingBlock "block1" (324, 200) (100, 40) 200  6   0  0
-           , movingBlock "block2" (700, 200) (100, 40) 200  6 100 10
+blocks 0 = [ objBlock    "block1" (200, 55)  (100, 57)               ]
+blocks 1 = [ movingBlock "block1" (400, 200) (100, 57) 200 10   0  0 ]
+blocks 2 = [ movingBlock "block1" (400, 200) (100, 57) 0    0 100 10 ]
+blocks 3 = [ movingBlock "block1" (324, 200) (100, 57) 200  6   0  0
+           , movingBlock "block2" (700, 200) (100, 57) 200  6 100 10
            ]
-blocks n = [ objBlock    "block1" (200, 200) (100, 50) ]
+blocks n = [ objBlock    "block1" (200, 200) (100, 57) ]
 
 -- *** Moving blocks
 
