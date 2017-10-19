@@ -384,7 +384,7 @@ gunFired name = proc (i, ppos) -> do
   let newFire = fire uniqId (fst ppos + playerWidth / 2, 0) False
   returnA -< newF1 `tag` newFire
 
-eventToList :: Event a -> [ a ]
+eventToList :: Event a -> [a]
 eventToList NoEvent   = []
 eventToList (Event a) = [a]
 
