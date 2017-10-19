@@ -53,7 +53,7 @@ data ObjectKind = Ball   !Double -- radius
                 | Side   !Side
                 | Projectile
                 | Block  !Size2D
-                -- | PowerUp PowerUp
+                -- -- | PowerUp PowerUp
   deriving (Show,Eq)
 
 data PlayerState = PlayerRight

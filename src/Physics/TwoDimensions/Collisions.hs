@@ -46,7 +46,7 @@ velCollitionSide (vx, vy)
   | vx < 0 && abs vx > abs vy = CollisionSide RightSide
   | vx > 0 && abs vx > abs vy = CollisionSide LeftSide
   | vy > 0 && abs vx < abs vy = CollisionSide TopSide
-  -- | vy > 0 && abs vx < abs vy
+  --  -- | vy > 0 && abs vx < abs vy
   | otherwise                 = CollisionSide BottomSide
 
 -- * Collisions

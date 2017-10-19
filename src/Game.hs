@@ -33,7 +33,9 @@
 -- You may want to read the basic definition of 'GameState', 'Controller' and
 -- 'ObjectSF' before you attempt to go through this module.
 --
-module Game (wholeGame) where
+module Game
+  -- (wholeGame)
+  where
 
 -- External imports
 import Prelude hiding (id, (.))
@@ -41,8 +43,7 @@ import Control.Category (id, (.))
 import Data.List
 import Data.Maybe
 import Debug.Trace
-import FRP.Yampa -- as Yampa
--- import FRP.Yampa.InternalCore
+import FRP.Yampa
 import FRP.Yampa.Extra
 import FRP.Yampa.Switches
 
@@ -66,12 +67,15 @@ import Objects.Walls
 
 -- * General state transitions
 
--- | Run the game that the player can lose at until ('switch') the player is
--- completely dead, and then restart the game.
+-- | Generate the game signal from the user input.
+
+-- Internally, this is a game in which the player can lose, until ('switch')
+-- the player is completely dead, and then restart the game.
+
 wholeGame :: SF Controller GameState
 wholeGame = forgetPast $ 
    switch (level 0 >>> (identity &&& playerDead))
-                     (\_ -> wholeGame)
+          (\_ -> wholeGame)
 
 -- * Game over
 
@@ -95,47 +99,19 @@ playerDead' gs = gamePlaying && dead
    -- This is only defined when the game is in progress.
    gamePlaying = GamePlaying == gameStatus (gameInfo gs)
 
--- | Show loading screen for 2 seconds, then move on to play
--- the game.
+-- * Loading levels
+
+-- | Show loading screen for 2 seconds, then plays the game.
 level :: Int -> SF Controller GameState
 level n = switch
   (levelLoading n &&& after 2 ()) -- show loading screen for 2 seconds
   (\_ -> levelLoaded n)
 
--- | Play a level till completed, then move on to the next level.
+-- | Play levels until completion starting from given level.
 levelLoaded :: Int -> SF Controller GameState
 levelLoaded n = switch
   (playLevel n >>> (identity &&& outOfEnemies))
   (\_ -> level (n + 1))
-
-timeProgression :: SF Controller (DTime -> DTime)
-timeProgression = -- slowDown
-  proc (c) -> do
-   let rev  = if controllerReverse c then ((-1)*) else id
-   returnA -< rev
-
-slowDown :: SF Controller (DTime -> DTime)
-slowDown = proc (c) -> do
-  rec let slow = controllerReverse c
-          unit = if | power' >= 0 && slow -> (-1)
-                    | power' >= maxPower  -> 0
-                    | otherwise           -> 1
-      power <- (maxPower +) ^<< integral -< unit
-      let power' = min maxPower (max 0 power)
-          dtF    = if slow && (power' > 0) then (0.1*) else id
-  returnA -< dtF
- where
-   maxPower :: Double
-   maxPower = 5
-
-
-timeProgression' :: SF ObjectInput (DTime -> DTime)
-timeProgression' = arr userInput >>> stopClock
-
-stopClock :: SF Controller (DTime -> DTime)
-stopClock = switch (arr controllerHalt >>> arr (\c' -> if c' then (const 0, Event ()) else (id, noEvent)))
-                   (\_ -> switch (constant (const 0) &&& after 25 ())
-                                 (\_ -> stopClock))
 
 -- | Produce a constant game state of loading a particular level.
 levelLoading :: Int -> SF a GameState
@@ -170,6 +146,38 @@ outOfEnemies = arr outOfEnemies'
      where
        balls = filter isBall (gameObjects gs)
 
+-- * Time manipulation
+
+-- Another option is slowDown
+timeProgression :: SF Controller (DTime -> DTime)
+timeProgression = proc (c) -> do
+  let rev  = if controllerReverse c then ((-1)*) else id
+  returnA -< rev
+
+slowDown :: SF Controller (DTime -> DTime)
+slowDown = proc (c) -> do
+  rec let slow = controllerReverse c
+          unit = if | power' >= 0 && slow -> (-1)
+                    | power' >= maxPower  -> 0
+                    | otherwise           -> 1
+      power <- (maxPower +) ^<< integral -< unit
+      let power' = min maxPower (max 0 power)
+          dtF    = if slow && (power' > 0) then (0.1*) else id
+  returnA -< dtF
+ where
+   maxPower :: Double
+   maxPower = 5
+
+timeProgression' :: SF ObjectInput (DTime -> DTime)
+timeProgression' = arr userInput >>> stopClock
+
+stopClock :: SF Controller (DTime -> DTime)
+stopClock = switch (arr (controllerHalt >>> haltOutput))
+                   (\_ -> switch (constant (const 0) &&& after 25 ())
+                                 (\_ -> stopClock))
+ where
+   haltOutput h = if h then (const 0, Event ()) else (id, noEvent)
+
 -- ** Game with partial state information
 
 -- | Given an initial list of objects, it runs the game, presenting the output
@@ -184,11 +192,7 @@ outOfEnemies = arr outOfEnemies'
 -- iteration).
 
 playerEnergy'' :: Objects -> Int
-playerEnergy'' objs = 
-  let p = findPlayer objs
-  in case p of
-      Just p' -> playerEnergy p'
-      Nothing -> 0
+playerEnergy'' objs = maybe 0 playerEnergy (findPlayer objs)
 
 gameTimeSF = proc (_, (_, e)) -> do
    dt <- deltas -< ()
@@ -384,10 +388,6 @@ gunFired name = proc (i, ppos) -> do
   let newFire = fire uniqId (fst ppos + playerWidth / 2, 0) False
   returnA -< newF1 `tag` newFire
 
-eventToList :: Event a -> [a]
-eventToList NoEvent   = []
-eventToList (Event a) = [a]
-
 -- *** Normal gun, fires one shot at a time
 multipleGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
 multipleGun name = eventToList ^<< gunFired name
@@ -435,7 +435,7 @@ player lives name p0 vul = ListSF $ proc i -> do
              , newF1Arrows ++ newPlayer)
 
 sumTime :: (DTime, DTime) -> DTime
-sumTime (dt, e) = e + dt
+sumTime = uncurry (+)
 
 playerState :: Controller -> PlayerState
 playerState controller =
@@ -490,7 +490,7 @@ playerProgress pid p0 = proc i -> do
    stateChanged :: PlayerState -> SF Controller (Event PlayerState)
    stateChanged oldState = arr playerState >>> ifDiff oldState
 
--- *** Fire/arrows/bullets/projectiles
+-- *** Fire \/ arrows \/ bullets \/ projectiles
 
 -- | This produces bullets that die when they hit the top of the screen.
 -- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
@@ -681,3 +681,11 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
        -- Initial velocity, reset when the user requests it.
        startAs v0  = revSwitch (constant v0 &&& restartCond)
                                (\_ -> startAs (0,0))
+
+
+-- * Auxiliary functions
+
+-- | Singleton if Event, empty list otherwise.
+eventToList :: Event a -> [a]
+eventToList NoEvent   = []
+eventToList (Event a) = [a]
