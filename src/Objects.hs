@@ -18,6 +18,10 @@ import Constants
 type Collision  = C.Collision  (ObjectName, ObjectKind)
 type Collisions = C.Collisions (ObjectName, ObjectKind)
 
+-- | Check if collision is of given type.
+collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
+collisionObjectKind ok1 (_, ok2) = ok1 == ok2
+
 -- * Objects
 
 type Objects = [Object]

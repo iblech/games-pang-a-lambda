@@ -199,9 +199,13 @@ executable pang-a-lambda
                    Display
                    Game
                    GameState
+                   Game.Time
                    Input
                    Objects
                    Objects.Walls
+                   Objects.Player
+                   Objects.Blocks
+                   Objects.Balls
                    ObjectSF
                    Resources
 

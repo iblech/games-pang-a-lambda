@@ -56,10 +56,14 @@ import Physics.TwoDimensions.PhysicalObjects
 -- Internal iports
 import Constants
 import GameState
+import Game.Time
 import Input
 import Objects
 import ObjectSF
 import Objects.Walls
+import Objects.Player
+import Objects.Balls
+import Objects.Blocks
 
 -- * General state transitions
 
@@ -132,37 +136,37 @@ levelCoreForward n = gamePlay (initialObjects n) >>^ composeGameState
     composeGameState :: (Objects, Time) -> GameState
     composeGameState (objs, t) = GameState objs (GameInfo t n GamePlaying)
 
--- * Time manipulation
-
--- | Time transformation that allows time to be reversed.
-timeProgressionReverse :: SF Controller (DTime -> DTime)
-timeProgressionReverse = proc (c) -> do
-  -- NOTE: Another option is slowDown
-  let rev  = if controllerReverse c then ((-1)*) else id
-  returnA -< rev
-
--- | Time transformation that slows down time upon request.
-timeProgressionSlowDown :: SF Controller (DTime -> DTime)
-timeProgressionSlowDown = proc (c) -> do
-  rec let slow = controllerReverse c
-          unit = if | power' >= 0 && slow -> (-1)
-                    | power' >= maxPower  -> 0
-                    | otherwise           -> 1
-      power <- (maxPower +) ^<< integral -< unit
-      let power' = min maxPower (max 0 power)
-          dtF    = if slow && (power' > 0) then (0.1*) else id
-  returnA -< dtF
- where
-   maxPower :: Double
-   maxPower = 5
-
--- | Time transformation that can halt time for an object.
-timeProgressionHalt :: SF ObjectInput (DTime -> DTime)
-timeProgressionHalt =   constant id        &&& mustHalt
-                    ||> constant (const 0) &&& after 25 ()
-                    ||> timeProgressionHalt
- where
-   mustHalt = (controllerHalt . userInput) ^>> edge
+-- -- * Time manipulation
+-- 
+-- -- | Time transformation that allows time to be reversed.
+-- timeProgressionReverse :: SF Controller (DTime -> DTime)
+-- timeProgressionReverse = proc (c) -> do
+--   -- NOTE: Another option is slowDown
+--   let rev  = if controllerReverse c then ((-1)*) else id
+--   returnA -< rev
+-- 
+-- -- | Time transformation that slows down time upon request.
+-- timeProgressionSlowDown :: SF Controller (DTime -> DTime)
+-- timeProgressionSlowDown = proc (c) -> do
+--   rec let slow = controllerReverse c
+--           unit = if | power' >= 0 && slow -> (-1)
+--                     | power' >= maxPower  -> 0
+--                     | otherwise           -> 1
+--       power <- (maxPower +) ^<< integral -< unit
+--       let power' = min maxPower (max 0 power)
+--           dtF    = if slow && (power' > 0) then (0.1*) else id
+--   returnA -< dtF
+--  where
+--    maxPower :: Double
+--    maxPower = 5
+-- 
+-- -- | Time transformation that can halt time for an object.
+-- timeProgressionHalt :: SF ObjectInput (DTime -> DTime)
+-- timeProgressionHalt =   constant id        &&& mustHalt
+--                     ||> constant (const 0) &&& after 25 ()
+--                     ||> timeProgressionHalt
+--  where
+--    mustHalt = (controllerHalt . userInput) ^>> edge
 
 -- * Partial game state
 
@@ -280,390 +284,6 @@ objWalls _ = [ inertSF objSideRight
              , inertSF objSideBottom
              ]
 
--- * Game objects
-
--- ** Player
-
--- | A player with a given it, lives, position and initial vulnerability.
-player :: ObjectName -> Int -> Pos2D -> Bool -> AliveObject
-player name lives p0 vul = ListSF $ proc i -> do
-  (ppos, pvel) <- playerMovement name p0 -< i
-
-  let state = playerState (userInput i)
-
-  -- newF1  <- isEvent ^<< edge                          -< controllerClick (userInput i)
-  -- uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
-  -- let newF1Arrows = [ fire uniqId (fst ppos, 0) False
-  --                   | newF1 ]
-
-  newF1Arrows <- playerGun name -< (i, ppos)
-
-  -- Dead?
-  let hitByBall = not $ null
-                $ collisionMask (name, Player) (collisionObjectKind Ball)
-                $ collisions i
-
-  vulnerable <- alwaysForward $ 
-                  switch (constant vul &&& after 2 ())
-                         (\_ -> constant True) -< ()
-
-  dead <- isEvent ^<< edge -< hitByBall && vulnerable
-
-  let newPlayer   = [ player name (lives-1) p0 False
-                    | dead  && lives > 0 ]
-
-  dt <- deltas -< ()
-
-  energy <- loopPre 5 (arr (dup . max 0 . min 5 . sumTime)) -< dt
-  --  max 0 (min 5 (round (fromIntegral (playerEnergyObjs ol) + dt)))
-
-  -- Final player
-  returnA -< (Object { objectName           = name
-                     , objectKind           = Player
-                     , objectProperties     = PlayerProps state lives vulnerable (round energy)
-                     , objectPos            = ppos
-                     , objectVel            = pvel
-                     , canCauseCollisions   = True
-                     , collisionEnergy      = 1
-                     }
-             , dead
-             , newF1Arrows ++ newPlayer)
-
-  where 
-    sumTime :: (DTime, DTime) -> DTime
-    sumTime = uncurry (+)
-
--- | Movement of a player around the screen.
-playerMovement :: ObjectName -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
-playerMovement pid p0 = proc i -> do
-  -- Obtain velocity based on state and input, and obtain
-  -- velocity delta to be applied to the position.
-  v  <- repeatSF getVelocity PlayerStand -< userInput i
-
-  let collisionsWithBlocks :: Collisions.Collisions (ObjectName, ObjectKind)
-      collisionsWithBlocks = filter onlyBlocks (collisions i)
-
-      onlyBlocks :: Collisions.Collision (ObjectName, ObjectKind) -> Bool
-      onlyBlocks (Collision cdata) = any (playerCollisionElem . fst) cdata
-
-      playerCollisionElem s = isBlockId s || isWallId s
-      isBlockId = collisionObjectKind Block
-      isWallId  = collisionObjectKind Side
-
-  let ev = changedVelocity (pid, Player) collisionsWithBlocks
-      vc = fromMaybe v ev
-
-  (px,py) <- (p0 ^+^) ^<< alwaysForward integral -< vc
-
-  -- Calculate actual velocity based on corrected/capped position
-  v' <- derivative -< (px, py)
-
-  returnA -< ((px, py), v')
-
- where
-
-   capPlayerPos (px, py) = (px', py')
-     where px' = inRange (0, width - playerWidth)  px
-           py' = inRange (0, height - playerHeight) py
-
-   getVelocity :: PlayerState -> SF Controller (Vel2D, Event PlayerState)
-   getVelocity pstate = stateVel pstate &&& stateChanged pstate
-
-   stateVel :: PlayerState -> SF a Vel2D
-   stateVel PlayerLeft     = constant (-playerSpeed, 0)
-   stateVel PlayerRight    = constant (playerSpeed,  0)
-   stateVel PlayerStand    = constant (0,            0)
-   stateVel PlayerShooting = constant (0,            0)
-
-   stateChanged :: PlayerState -> SF Controller (Event PlayerState)
-   stateChanged oldState = playerState ^>> ifDiff oldState
-
--- | State of the player based in user input.
-playerState :: Controller -> PlayerState
-playerState controller
-  | controllerClick controller = PlayerShooting
-  | controllerLeft  controller = PlayerLeft
-  | controllerRight controller = PlayerRight
-  | otherwise                  = PlayerStand
-
--- ** Guns
-
--- | The player's gun. Guns can fire shots, so guns may include
---   more than one object.
-playerGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
-playerGun = singleShotGun
-  -- To switch between different kinds of guns
-  -- playerGun name = switch
-  --   (singleShotGun name &&& after 5 ())
-  --   (\_ -> multiShotGun name)
-
--- | Gun that can be fired once until the bullet hits the wall or a ball, and
---   then can be fired again.
-singleShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
-singleShotGun name = revSwitch (constant [] &&& gunFired name)
-                               (\fireLSF -> blockedGun name fireLSF)
-
--- | Gun that can be fired multiple times.
-multiShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
-multiShotGun name = eventToList ^<< gunFired name
-
--- | Possible event carrying a projectile, triggered when the
---   gun has been fired.
-gunFired :: ObjectName -> SF (ObjectInput, Pos2D) (Event AliveObject)
-gunFired name = proc (i, ppos) -> do
-  -- Fire!!
-  newF1  <- edge -< controllerClick (userInput i)
-  uniqId <- (\t -> "bullet" ++ name ++ show t) ^<< time -< ()
-
-  let newFire = bullet uniqId (fst ppos + playerWidth / 2, 0) False
-  returnA -< newF1 `tag` newFire
-
--- | Gun that cannot be fired until the current bullet hits
---   the ceiling or a ball.
-blockedGun :: ObjectName -> AliveObject -> SF (ObjectInput, Pos2D) [AliveObject]
-blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& bulletDead fsf)
-                                (\_ -> singleShotGun name)
-  where
-    bulletDead fsf = proc (oi, _) -> do
-      (_, b, _) <- listSF fsf -< oi
-      justDied  <- edge       -< b
-      returnA -< justDied
-
--- | Fire \/ arrows \/ bullets \/ projectiles. If the third argument is
---   'False', they die when they hit the top of the screen. If the third
---   argument is 'True', they stuck for a while before they die.
-bullet :: ObjectName -> Pos2D -> Bool -> AliveObject
-bullet name (x0, y0) sticky = ListSF $ proc i -> do
-
-  -- Calculate arrow tip
-  yT <- (y0+) ^<< integral -< bulletSpeed
-  let y = min height yT
-
-  -- Delay death if the bullet is "sticky"
-  hit <- revSwitch (never &&& bulletHitCeiling) (\_ -> stickyDeath sticky) -< y
-
-  let hitBall  = bulletCollidedWithBall  name $ collisions i
-  let hitBlock = bulletCollidedWithBlock name $ collisions i
-
-  let dead = isEvent hit || hitBall || hitBlock
-
-  let object = Object { objectName         = name
-                      , objectKind         = Projectile
-                      , objectProperties   = ProjectileProps
-                      , objectPos          = (x0, y)
-                      , objectVel          = (0, 0)
-                      , canCauseCollisions = True
-                      , collisionEnergy    = 0
-                      }
-
-  returnA -< (object, dead, [])
-
- where
-
-   bulletHitCeiling = (>= height) ^>> edge
-   bulletCollidedWithBall  bid = not . null . collisionMask (bid, Projectile) (collisionObjectKind Ball)
-   bulletCollidedWithBlock bid = not . null . collisionMask (bid, Projectile) (collisionObjectKind Block)
-
-   stickyDeath :: Bool -> SF a (Event ())
-   stickyDeath True  = after 30 ()
-   stickyDeath False = constant (Event ())
-
--- ** Balls
-
--- | A ball that splits in two when hit unless it is too small.
-splittingBall :: ObjectName -> Double -> Pos2D -> Vel2D -> AliveObject
-splittingBall bid size p0 v0 = ListSF $ timeTransformSF timeProgressionHalt $ proc i -> do
-
-    -- Default, just bouncing behaviour
-    bo <- bouncingBall bid size p0 v0 -< i
-
-    -- Hit fire? If so, it should split
-    click <- edge <<^ ballIsHit bid -< collisions i
-    let shouldSplit = isEvent click
-
-    -- We need two unique IDs so that collisions work
-    t <- localTime -< ()
-    let offspringIDL = bid ++ show t ++ "L"
-        offspringIDR = bid ++ show t ++ "R"
-
-    let enforceYPositive (x,y) = (x, abs y)
-
-    -- Position and velocity of new offspring
-    let bpos = physObjectPos bo
-        bvel = enforceYPositive $ physObjectVel bo
-        ovel = enforceYPositive $ (\(vx,vy) -> (-vx, vy)) bvel
-
-    -- Offspring size, unless this ball is too small to split
-    let tooSmall      = size <= (ballWidth / 8)
-    let offspringSize = size / 2
-
-    -- Calculate offspring, if any
-    let offspringL = splittingBall offspringIDL offspringSize bpos bvel
-        offspringR = splittingBall offspringIDR offspringSize bpos ovel
-        offspring  = if shouldSplit && not tooSmall
-                      then [ offspringL, offspringR ]
-                      else []
-
-    -- If it splits, we just remove this one
-    let dead = shouldSplit
-
-    returnA -< (bo, dead, offspring)
-
-  where
-
-    -- | Determine if a given fall has been hit by a bullet.
-    ballIsHit :: ObjectName -> Objects.Collisions -> Bool
-    ballIsHit bid = not . null . collisionMask (bid, Ball) (collisionObjectKind Projectile)
-
--- | A bouncing ball that moves freely until there is a collision, then bounces
--- and goes on and on.
---
--- This SF needs an initial position and velocity. Every time there is a
--- bounce, it takes a snapshot of the point of collision and corrected
--- velocity, and starts again.
---
-bouncingBall :: ObjectName -> Double -> Pos2D -> Vel2D -> ObjectSF
-bouncingBall bid size p0 v0 = repeatRevSF (progressAndBounce bid size) (p0, v0)
-
--- | Calculate the future tentative position, and bounce if necessary. Pass on
--- snapshot of ball position and velocity if bouncing.
-progressAndBounce :: ObjectName -> Double -> (Pos2D, Vel2D)
-                  -> SF ObjectInput (Object, Event (Pos2D, Vel2D))
-progressAndBounce bid size (p0, v0) = proc i -> do
-
-  -- Position of the ball, starting from p0 with velicity v0, since the
-  -- time of last switching (or being fired, whatever happened last)
-  -- provided that no obstacles are encountered.
-  o <- freeBall bid size p0 v0 -< i
-
-  -- The ballBounce needs the ball SF' input (which has knowledge of
-  -- collisions), so we carry it parallely to the tentative new
-  -- positions, and then use it to detect when it's time to bounce
-  b <- ballBounce bid -< (i, o)
-
-  returnA -< (o, b)
-
--- | Detect if the ball must bounce and, if so, take a snapshot of the object's
--- current position and velocity.
---
--- It proceeds by detecting whether any collision affects the ball's velocity,
--- and outputs a snapshot of the object position and the corrected velocity if
--- necessary.
-
--- NOTE: To avoid infinite loops when switching, the initial input is discarded
--- and never causes a bounce. Careful: this prevents the ball from bouncing
--- immediately after creation, which may or may not be what we want.
-ballBounce :: ObjectName -> SF (ObjectInput, Object) (Event (Pos2D, Vel2D))
-ballBounce bid = noEvent --> proc (ObjectInput ci cs, o) -> do
-  -- HN 2014-09-07: With the present strategy, need to be able to
-  -- detect an event directly after
-  -- ev <- edgeJust -< changedVelocity "ball" cs
-  let collisionsWithoutBalls = filter (not . allBalls) cs
-      allBalls (Collision cdata) = all (collisionObjectKind Ball . fst) cdata
-
-  let collisionsWithoutPlayer = filter (not . anyPlayer)
-                                 collisionsWithoutBalls
-      anyPlayer (Collision cdata) = any (collisionObjectKind Player . fst) cdata
-
-  let ev = maybeToEvent (changedVelocity (bid, Ball) collisionsWithoutPlayer)
-  returnA -< fmap (\v -> (objectPos o, v)) ev
-
--- | Position of the ball, starting from p0 with velicity v0, since the time of
--- last switching (that is, collision, or the beginning of time if never
--- switched before), provided that no obstacles are encountered.
-freeBall :: ObjectName -> Double -> Pos2D -> Vel2D -> ObjectSF
-freeBall name size p0 v0 = proc (ObjectInput ci cs) -> do
-
-  -- Integrate acceleration, add initial velocity and cap speed. Resets both
-  -- the initial velocity and the current velocity to (0,0) when the user
-  -- presses the Halt key (hence the dependency on the controller input ci).
-  vInit <- startAs v0 -< ci
-  vel   <- vdiffSF    -< (vInit, (0, -1000.8), ci)
-
-  -- Any free moving object behaves like this (but with
-  -- acceleration. This should be in some FRP.NewtonianPhysics
-  -- module)
-  pos <- (p0 ^+^) ^<< integral -< vel
-
-  let obj = Object { objectName           = name
-                   , objectKind           = Ball
-                   , objectProperties     = BallProps size
-                   , objectPos            = pos
-                   , objectVel            = vel
-                   , canCauseCollisions   = True
-                   , collisionEnergy      = 1
-                   }
-
-  returnA -< obj
- where
-   -- Spike every time the user presses the Halt key
-   restartCond = spikeOn (arr controllerStop)
-
-   -- Calculate the velocity, restarting when the user
-   -- requests it.
-   vdiffSF = proc (iv, acc, ci) -> do
-               -- Calculate velocity difference by integrating acceleration
-               -- Reset calculation when user requests to stop balls
-               vd <- restartOn (fst ^>> integral)
-                               (snd ^>> restartCond) -< (acc, ci)
-
-               -- Add initial velocity, and cap the result
-               v <- arr (uncurry (^+^)) -< (iv, vd)
-               let vFinal = limitNorm v (maxVNorm size)
-
-               returnA -< vFinal
-
-   -- Initial velocity, reset when the user requests it.
-   startAs v0  = revSwitch (constant v0 &&& restartCond)
-                           (\_ -> startAs (0,0))
-
--- ** Blocks
-
--- | Static block builder, given a name, a size and its base
--- position.
-staticBlock :: ObjectName -> Pos2D -> Size2D -> AliveObject
-staticBlock name pos size = ListSF $ timeTransformSF timeProgressionHalt $ constant
-  (Object { objectName           = name
-          , objectKind           = Block
-          , objectProperties     = BlockProps size
-          , objectPos            = pos
-          , objectVel            = (0,0)
-          , canCauseCollisions   = False
-          , collisionEnergy      = 0
-          }, False, [])
-
--- | Moving block with an initial position and size, and horizontal and
--- vertical amplitude and periods. If an amplitude is /not/ zero, the block
--- moves along that dimension using a periodic oscillator (see 'osci').
-oscillatingBlock :: ObjectName
-                 -> Pos2D -> Size2D  -- Geometry
-                 -> Double -> Double -- Horizontal oscillation amplitude and period
-                 -> Double -> Double -- Vertical   oscillation amplitude and period
-                 -> AliveObject
-oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
-  px' <- vx -< px
-  py' <- vy -< py
-  returnA -< (Object { objectName           = name
-                     , objectKind           = Block
-                     , objectProperties     = BlockProps size
-                     , objectPos            = (px', py')
-                     , objectVel            = (0,0)
-                     , canCauseCollisions   = False
-                     , collisionEnergy      = 0
-                     }, False, [])
-
- where
-
-   -- To avoid errors, we check that the amplitude is non-zero, otherwise
-   -- just pass the given position along.
-   vx :: SF Double Double
-   vx = if hAmp /= 0 then (px +) ^<< osci hAmp hPeriod else identity
-
-   -- To avoid errors, we check that the amplitude is non-zero, otherwise
-   -- just pass the given position along.
-   vy :: SF Double Double
-   vy = if vAmp /= 0 then (py +) ^<< osci vAmp vPeriod else identity
-
 -- * Auxiliary functions
 
 -- ** Game aux
@@ -671,10 +291,6 @@ oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ 
 -- | Safe function to get the energy of the player from the game state.
 playerEnergyObjs :: Objects -> Int
 playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
-
--- | Check if collision is of given type.
-collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
-collisionObjectKind ok1 (_, ok2) = ok1 == ok2
 
 -- ** Other aux
 
