@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiWayIf    #-}
-{-# LANGUAGE Arrows        #-}
+{-# LANGUAGE Arrows     #-}
+{-# LANGUAGE MultiWayIf #-}
 -- | This module defines the game as a big Signal Function that transforms a
 -- Signal carrying a Input 'Controller' information into a Signal carrying
 -- 'GameState'.
@@ -110,16 +110,23 @@ level n = switch
 -- | Straight to play level until finished, then go on to next level.
 levelCore :: Int -> SF Controller GameState
 levelCore n = switch
-  (playLevel n >>> (identity &&& outOfEnemies))
-  (\_ -> level (n + 1))
+    (playLevel n >>> (identity &&& arr outOfEnemies))
+    (\_ -> level (n + 1))
+  where
+    -- | Detect when there are no more enemies in the scene.
+    outOfEnemies :: GameState -> (Event GameState)
+    outOfEnemies gs | none isBall (gameObjects gs) = Event gs
+                    | otherwise                    = NoEvent
 
 -- | Produce a constant game state of loading a particular level.
-levelLoading :: Int -> SF a GameState
+levelLoading :: Int -> SF Controller GameState
 levelLoading n = constant (GameState [] (GameInfo 0 n GameLoading))
 
 -- | Play one level indefinitely (it never ends or restarts).
 playLevel :: Int -> SF Controller GameState
-playLevel = timeTransformSF timeProgressionReverse . limitHistory 5 . playLevelForward
+playLevel =
+  timeTransformSF timeProgressionReverse . limitHistory 5 . playLevelForward
+
   -- checkpoint $ proc (c) -> do
   -- take    <- edge <<^ controllerCheckPointSave -< c
   -- restore <- edge <<^ controllerCheckPointRestore -< c
@@ -134,16 +141,6 @@ playLevelForward n = gamePlay (initialObjects n) >>^ composeGameState
     -- Compose GameState output from 'gamePlay's output
     composeGameState :: (Objects, Time) -> GameState
     composeGameState (objs, t) = GameState objs (GameInfo t n GamePlaying)
-
--- | Detect when there are no more enemies in the scene.
-outOfEnemies :: SF GameState (Event GameState)
-outOfEnemies = arr outOfEnemies'
- where
-   outOfEnemies' :: GameState -> (Event GameState)
-   outOfEnemies' gs | null balls = Event gs
-                    | otherwise  = NoEvent
-     where
-       balls = filter isBall (gameObjects gs)
 
 -- * Time manipulation
 
@@ -205,9 +202,17 @@ gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlayInternal objs)
 --
 -- The second value in the accumulator is the energy left.
 
-gamePlayInternal :: [AliveObject]                                    -- ^ Initial game objects
-                 -> SF (Controller,      (Objects.Collisions, Int))
-                       ((Objects, Time), (Objects.Collisions, Int))  -- ^ Game Input x collisions x enery ~> Objects, time left, collisions, energy
+gamePlayInternal
+  :: [AliveObject]                                    -- ^ Initial game objects
+  ->  SF (Controller,      (Objects.Collisions, Int))
+         ((Objects, Time), (Objects.Collisions, Int)) -- ^ Input x collisions
+                                                      --         x energy
+                                                      --   ~> Objects
+                                                      --         x time left
+                                                      --         x collisions
+                                                      --         x energy
+     
+
 gamePlayInternal objs = 
   proc (input, (cs, el)) -> do
      -- Adapt Input
@@ -383,13 +388,13 @@ playerMovement pid p0 = proc i -> do
    stateChanged :: PlayerState -> SF Controller (Event PlayerState)
    stateChanged oldState = playerState ^>> ifDiff oldState
 
+-- | State of the player based in user input.
 playerState :: Controller -> PlayerState
-playerState controller =
-  case (controllerLeft controller, controllerRight controller, controllerClick controller) of
-    (_,    _,    True) -> PlayerShooting
-    (True, _,    _)    -> PlayerLeft
-    (_,    True, _)    -> PlayerRight
-    _                  -> PlayerStand
+playerState controller
+  | controllerClick controller = PlayerShooting
+  | controllerLeft  controller = PlayerLeft
+  | controllerRight controller = PlayerRight
+  | otherwise                  = PlayerStand
 
 -- ** Guns
 
@@ -694,3 +699,9 @@ eventToList (Event a) = [a]
 -- Maybe use tasks?
 infixr 2 ||>
 (||>) sf sfC = switch sf (const sfC)
+
+-- ** Other aux
+
+-- | 'True' if property does not hold for any element, 'False' otherwise.
+none :: Foldable t => (a -> Bool) -> t a -> Bool
+none p = not . any p
