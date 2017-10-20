@@ -82,22 +82,22 @@ wholeGame = forgetPast $
 -- | Detect the player in the game state is dead (SF).
 playerDead :: SF GameState (Event ())
 playerDead = playerDead' ^>> edge
-
--- | True if the player in the game state is dead (no lives left).
-playerDead' :: GameState -> Bool
-playerDead' gs = gamePlaying && dead
- where
-   -- Dead in the game if not present, or if found dead
-   dead = not (any isPlayer (gameObjects gs))
-       || any playerIsDead (gameObjects gs)
-
-   -- Player dead if it has no more lives left
-   playerIsDead o = case objectProperties o of
-     (PlayerProps _ lives _ _) -> lives < 0
-     otherwise                 -> False
-
-   -- This is only defined when the game is in progress.
-   gamePlaying = GamePlaying == gameStatus (gameInfo gs)
+  where
+    -- | True if the player in the game state is dead (no lives left).
+    playerDead' :: GameState -> Bool
+    playerDead' gs = gamePlaying && dead
+      where
+        -- Dead in the game if not present, or if found dead
+        dead = not (any isPlayer (gameObjects gs))
+            || any playerIsDead (gameObjects gs)
+    
+        -- Player dead if it has no more lives left
+        playerIsDead o = case objectProperties o of
+          (PlayerProps _ lives _ _) -> lives < 0
+          otherwise                 -> False
+    
+        -- This is only defined when the game is in progress.
+        gamePlaying = GamePlaying == gameStatus (gameInfo gs)
 
 -- * Loading levels
 
@@ -105,11 +105,11 @@ playerDead' gs = gamePlaying && dead
 level :: Int -> SF Controller GameState
 level n = switch
   (levelLoading n &&& after 2 ()) -- show loading screen for 2 seconds
-  (\_ -> levelLoaded n)
+  (\_ -> levelCore n)
 
--- | Play levels until completion starting from given level.
-levelLoaded :: Int -> SF Controller GameState
-levelLoaded n = switch
+-- | Straight to play level until finished, then go on to next level.
+levelCore :: Int -> SF Controller GameState
+levelCore n = switch
   (playLevel n >>> (identity &&& outOfEnemies))
   (\_ -> level (n + 1))
 
@@ -119,20 +119,17 @@ levelLoading n = constant (GameState [] (GameInfo 0 n GameLoading))
 
 -- | Play one level indefinitely (it never ends or restarts).
 playLevel :: Int -> SF Controller GameState
-playLevel n =  playLevel' n 
+playLevel = timeTransformSF timeProgressionReverse . limitHistory 5 . playLevelForward
   -- checkpoint $ proc (c) -> do
   -- take    <- edge <<^ controllerCheckPointSave -< c
   -- restore <- edge <<^ controllerCheckPointRestore -< c
   -- g       <- playLevel' n -< c
   -- returnA -< (g, take, restore)
 
--- | Play one level indefinitely (it never ends or restarts).
-playLevel' :: Int -> SF Controller GameState
-playLevel' n =  timeTransformSF timeProgressionReverse $ limitHistory 5 $ playLevel'' n
-
--- | Play one level indefinitely (it never ends or restarts).
-playLevel'' :: Int -> SF Controller GameState
-playLevel'' n = gamePlay (initialObjects n) >>^ composeGameState
+-- | Play one level indefinitely (it never ends or restarts), in forward time
+--   direction.
+playLevelForward :: Int -> SF Controller GameState
+playLevelForward n = gamePlay (initialObjects n) >>^ composeGameState
   where
     -- Compose GameState output from 'gamePlay's output
     composeGameState :: (Objects, Time) -> GameState
@@ -180,7 +177,7 @@ timeProgressionHalt =   constant id        &&& mustHalt
  where
    mustHalt = (controllerHalt . userInput) ^>> edge
 
--- ** Game with partial state information
+-- * Partial game state
 
 -- | Given an initial list of objects, it runs the game, presenting the output
 -- from those objects at all times, notifying any time the ball hits the floor,
@@ -291,6 +288,8 @@ objWalls _ = [ inertSF objSideRight
 -- * Game objects
 
 -- ** Player
+
+-- | A player with a given it, lives, position and initial vulnerability.
 player :: ObjectName -> Int -> Pos2D -> Bool -> AliveObject
 player name lives p0 vul = ListSF $ proc i -> do
   (ppos, pvel) <- playerMovement name p0 -< i
@@ -339,6 +338,7 @@ player name lives p0 vul = ListSF $ proc i -> do
     sumTime :: (DTime, DTime) -> DTime
     sumTime = uncurry (+)
 
+-- | Movement of a player around the screen.
 playerMovement :: ObjectName -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
 playerMovement pid p0 = proc i -> do
   -- Obtain velocity based on state and input, and obtain
@@ -551,22 +551,15 @@ progressAndBounce bid size (p0, v0) = proc i -> do
 -- | Detect if the ball must bounce and, if so, take a snapshot of the object's
 -- current position and velocity.
 --
+-- It proceeds by detecting whether any collision affects the ball's velocity,
+-- and outputs a snapshot of the object position and the corrected velocity if
+-- necessary.
+
 -- NOTE: To avoid infinite loops when switching, the initial input is discarded
 -- and never causes a bounce. Careful: this prevents the ball from bouncing
 -- immediately after creation, which may or may not be what we want.
 ballBounce :: ObjectName -> SF (ObjectInput, Object) (Event (Pos2D, Vel2D))
-ballBounce bid = noEvent --> ballBounce' bid
-
--- | Detect if the ball must bounce and, if so, take a snapshot of the object's
--- current position and velocity.
---
--- This does the core of the work, and does not ignore the initial input.
---
--- It proceeds by detecting whether any collision affects the ball's velocity,
--- and outputs a snapshot of the object position and the corrected velocity if
--- necessary.
-ballBounce' :: ObjectName -> SF (ObjectInput, Object) (Event (Pos2D, Vel2D))
-ballBounce' bid = proc (ObjectInput ci cs, o) -> do
+ballBounce bid = noEvent --> proc (ObjectInput ci cs, o) -> do
   -- HN 2014-09-07: With the present strategy, need to be able to
   -- detect an event directly after
   -- ev <- edgeJust -< changedVelocity "ball" cs
@@ -678,14 +671,22 @@ oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ 
 
 -- * Auxiliary functions
 
--- | Singleton if Event, empty list otherwise.
-eventToList :: Event a -> [a]
-eventToList NoEvent   = []
-eventToList (Event a) = [a]
+-- ** Game aux
 
 -- | Safe function to get the energy of the player from the game state.
 playerEnergyObjs :: Objects -> Int
 playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
+
+-- | Check if collision is of given type.
+collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
+collisionObjectKind ok1 (_, ok2) = ok1 == ok2
+
+-- ** Yampa aux
+
+-- | Singleton if Event, empty list otherwise.
+eventToList :: Event a -> [a]
+eventToList NoEvent   = []
+eventToList (Event a) = [a]
 
 -- | Execute an sf until it fires an event, and then execute another SF.
 
@@ -693,7 +694,3 @@ playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
 -- Maybe use tasks?
 infixr 2 ||>
 (||>) sf sfC = switch sf (const sfC)
-
--- | Check if collision is of given type.
-collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
-collisionObjectKind ok1 (_, ok2) = ok1 == ok2
