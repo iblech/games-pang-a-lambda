@@ -1,5 +1,5 @@
 -- Copyright (c) 2011 - All rights reserved - Keera Studios
-module Shapes where
+module Physics.Shapes where
 
 import Data
 

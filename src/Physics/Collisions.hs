@@ -1,13 +1,13 @@
 -- Copyright (c) 2011 - All rights reserved - Keera Studios
-module Collisions where
+module Physics.Collisions where
 
 import Control.Applicative
 import Control.Arrow
 import Data.Maybe
 
-import Physics.TwoDimensions.Dimensions
 import FRP.Yampa.VectorSpace
-import Shapes
+import Physics.TwoDimensions.Dimensions
+import Physics.Shapes
 import Data ( pointX, rotateRespect, unrotateRespect
             , minimumWith, swap
             )

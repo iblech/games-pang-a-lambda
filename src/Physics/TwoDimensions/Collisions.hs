@@ -12,7 +12,7 @@ import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects
 import Physics.TwoDimensions.Shapes
 
-import Collisions
+import Physics.Collisions
 
 -- * Collision points
 data CollisionPoint = CollisionSide  Side
