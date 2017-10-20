@@ -686,13 +686,15 @@ eventToList :: Event a -> [a]
 eventToList NoEvent   = []
 eventToList (Event a) = [a]
 
--- | Execute an sf until it fires an event, and then execute another SF.
+-- | AndThen: Execute an sf until it fires an event, and then execute another SF.
 
 -- TODO: Is there a better abstraction to write this?
 -- Maybe use tasks?
 infixr 2 ||>
 (||>) sf sfC = switch sf (const sfC)
 
+-- | Until: sf1 until sf2 holds
+(>?) :: SF a b -> SF b (Event c) -> SF a (b, Event c)
 (>?) sf0 sf = sf0 >>> (identity &&& sf)
 
 -- ** Other aux
