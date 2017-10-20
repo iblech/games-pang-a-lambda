@@ -385,10 +385,10 @@ playerName = "player"
 playerState :: Controller -> PlayerState
 playerState controller =
   case (controllerLeft controller, controllerRight controller, controllerClick controller) of
-    (_,    _, True) -> PlayerShooting
-    (True, _, _)    -> PlayerLeft
-    (_,    True, _) -> PlayerRight
-    _               -> PlayerStand
+    (_,    _,    True) -> PlayerShooting
+    (True, _,    _)    -> PlayerLeft
+    (_,    True, _)    -> PlayerRight
+    _                  -> PlayerStand
 
 playerProgress :: String -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
 playerProgress pid p0 = proc i -> do
@@ -488,8 +488,8 @@ bullet name (x0, y0) sticky = ListSF $ proc i -> do
   -- Delay death if the bullet is "sticky"
   hit <- revSwitch (never &&& bulletHitCeiling) (\_ -> stickyDeath sticky) -< y
 
-  hitBall  <- arr (bulletCollidedWithBall  name) -< collisions i
-  hitBlock <- arr (bulletCollidedWithBlock name) -< collisions i
+  let hitBall  = bulletCollidedWithBall  name $ collisions i
+  let hitBlock = bulletCollidedWithBlock name $ collisions i
 
   let dead = isEvent hit || hitBall || hitBlock
 
@@ -505,7 +505,7 @@ bullet name (x0, y0) sticky = ListSF $ proc i -> do
 
  where
 
-   bulletHitCeiling = arr (>= height) >>> edge
+   bulletHitCeiling = (>= height) ^>> edge
    bulletCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
    bulletCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
 
@@ -519,44 +519,46 @@ bullet name (x0, y0) sticky = ListSF $ proc i -> do
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
 splittingBall size bid p0 v0 = ListSF $ timeTransformSF timeProgressionHalt $ proc i -> do
 
-  -- Default, just bouncing behaviour
-  bo <- bouncingBall size bid p0 v0 -< i
+    -- Default, just bouncing behaviour
+    bo <- bouncingBall size bid p0 v0 -< i
 
-  -- Hit fire? If so, it should split
-  click <- edge <<^ ballIsHit bid -< collisions i
-  let shouldSplit = isEvent click
+    -- Hit fire? If so, it should split
+    click <- edge <<^ ballIsHit bid -< collisions i
+    let shouldSplit = isEvent click
 
-  -- We need two unique IDs so that collisions work
-  t <- localTime -< ()
-  let offspringIDL = bid ++ show t ++ "L"
-      offspringIDR = bid ++ show t ++ "R"
+    -- We need two unique IDs so that collisions work
+    t <- localTime -< ()
+    let offspringIDL = bid ++ show t ++ "L"
+        offspringIDR = bid ++ show t ++ "R"
 
-  let enforceYPositive (x,y) = (x, abs y)
+    let enforceYPositive (x,y) = (x, abs y)
 
-  -- Position and velocity of new offspring
-  let bpos = physObjectPos bo
-      bvel = enforceYPositive $ physObjectVel bo
-      ovel = enforceYPositive $ (\(vx,vy) -> (-vx, vy)) bvel
+    -- Position and velocity of new offspring
+    let bpos = physObjectPos bo
+        bvel = enforceYPositive $ physObjectVel bo
+        ovel = enforceYPositive $ (\(vx,vy) -> (-vx, vy)) bvel
 
-  -- Offspring size, unless this ball is too small to split
-  let tooSmall      = size <= (ballWidth / 8)
-  let offspringSize = size / 2
+    -- Offspring size, unless this ball is too small to split
+    let tooSmall      = size <= (ballWidth / 8)
+    let offspringSize = size / 2
 
-  -- Calculate offspring, if any
-  let offspringL = splittingBall offspringSize offspringIDL bpos bvel
-      offspringR = splittingBall offspringSize offspringIDR bpos ovel
-      offspring  = if shouldSplit && not tooSmall
-                    then [ offspringL, offspringR ]
-                    else []
+    -- Calculate offspring, if any
+    let offspringL = splittingBall offspringSize offspringIDL bpos bvel
+        offspringR = splittingBall offspringSize offspringIDR bpos ovel
+        offspring  = if shouldSplit && not tooSmall
+                      then [ offspringL, offspringR ]
+                      else []
 
-  -- If it splits, we just remove this one
-  let dead = shouldSplit
+    -- If it splits, we just remove this one
+    let dead = shouldSplit
 
-  returnA -< (bo, dead, offspring)
+    returnA -< (bo, dead, offspring)
 
--- | Determine if a given fall has been hit by a bullet.
-ballIsHit :: ObjectName -> Objects.Collisions -> Bool
-ballIsHit bid = not . null . collisionMask bid ("bullet" `isPrefixOf`)
+  where
+
+    -- | Determine if a given fall has been hit by a bullet.
+    ballIsHit :: ObjectName -> Objects.Collisions -> Bool
+    ballIsHit bid = not . null . collisionMask bid ("bullet" `isPrefixOf`)
 
 -- | A bouncing ball that moves freely until there is a collision, then bounces
 -- and goes on and on.
@@ -619,9 +621,8 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   returnA -< fmap (\v -> (objectPos o, v)) ev
 
 -- | Position of the ball, starting from p0 with velicity v0, since the time of
--- last switching (that is, collision, or the beginning of time --being fired
--- from the paddle-- if never switched before), provided that no obstacles are
--- encountered.
+-- last switching (that is, collision, or the beginning of time if never
+-- switched before), provided that no obstacles are encountered.
 freeBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
 freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
 
@@ -645,26 +646,27 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
                    }
 
   returnA -< obj
- where -- Spike every time the user presses the Halt key
-       restartCond = spikeOn (arr controllerStop)
+ where
+   -- Spike every time the user presses the Halt key
+   restartCond = spikeOn (arr controllerStop)
 
-       -- Calculate the velocity, restarting when the user
-       -- requests it.
-       vdiffSF = proc (iv, acc, ci) -> do
-                   -- Calculate velocity difference by integrating acceleration
-                   -- Reset calculation when user requests to stop balls
-                   vd <- restartOn (arr fst >>> integral)
-                                   (arr snd >>> restartCond) -< (acc, ci)
+   -- Calculate the velocity, restarting when the user
+   -- requests it.
+   vdiffSF = proc (iv, acc, ci) -> do
+               -- Calculate velocity difference by integrating acceleration
+               -- Reset calculation when user requests to stop balls
+               vd <- restartOn (arr fst >>> integral)
+                               (arr snd >>> restartCond) -< (acc, ci)
 
-                   -- Add initial velocity, and cap the result
-                   v <- arr (uncurry (^+^)) -< (iv, vd)
-                   let vFinal = limitNorm v (maxVNorm size)
+               -- Add initial velocity, and cap the result
+               v <- arr (uncurry (^+^)) -< (iv, vd)
+               let vFinal = limitNorm v (maxVNorm size)
 
-                   returnA -< vFinal
+               returnA -< vFinal
 
-       -- Initial velocity, reset when the user requests it.
-       startAs v0  = revSwitch (constant v0 &&& restartCond)
-                               (\_ -> startAs (0,0))
+   -- Initial velocity, reset when the user requests it.
+   startAs v0  = revSwitch (constant v0 &&& restartCond)
+                           (\_ -> startAs (0,0))
 
 
 -- * Auxiliary functions
