@@ -77,15 +77,16 @@ executable pang-a-lambda-physics
   hs-source-dirs: Experiments/collisions
   other-modules:
                  -- Game specific
-                 Constants
-                 Debug
-                 Display
-                 Game
-                 GameState
-                 Input
+                 Game.Constants
+                 Game.Debug
+                 Game.Display
+                 Game.GamePlay
+                 Game.GameState
+                 Game.Input
                  Game.Objects
-                 ObjectSF
-                 Resources
+                 Game.ObjectSF
+                 Game.Resources
+                 Game.Physics.GameCollisions
 
                  -- General modules
                  Control.Extra.Monad
@@ -97,7 +98,6 @@ executable pang-a-lambda-physics
                  Physics.Shapes
                  Physics.TwoDimensions.Collisions
                  Physics.TwoDimensions.Dimensions
-                 Physics.TwoDimensions.GameCollisions
                  Physics.TwoDimensions.PhysicalObjects
                  Physics.TwoDimensions.Shapes
   default-language:    Haskell2010
@@ -160,6 +160,7 @@ executable pang-a-lambda-splitballs
                    Game.Objects
                    Game.ObjectSF
                    Game.Resources
+                   Game.Physics.GameCollisions
 
                    -- General modules
                    Control.Extra.Monad
@@ -168,7 +169,6 @@ executable pang-a-lambda-splitballs
                    Graphics.UI.Extra.SDL
                    Physics.TwoDimensions.Collisions
                    Physics.TwoDimensions.Dimensions
-                   Physics.TwoDimensions.GameCollisions
                    Physics.TwoDimensions.PhysicalObjects
                    Physics.TwoDimensions.Shapes
     default-language:    Haskell2010
@@ -208,6 +208,7 @@ executable pang-a-lambda
                    Game.Objects.Blocks
                    Game.Objects.Balls
                    Game.ObjectSF
+                   Game.Physics.GameCollisions
                    Game.Resources
 
                    -- General modules
@@ -222,6 +223,5 @@ executable pang-a-lambda
                    Physics.Shapes
                    Physics.TwoDimensions.Collisions
                    Physics.TwoDimensions.Dimensions
-                   Physics.TwoDimensions.GameCollisions
                    Physics.TwoDimensions.PhysicalObjects
                    Physics.TwoDimensions.Shapes

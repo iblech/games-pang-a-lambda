@@ -9,7 +9,7 @@
 -- (making it almost linear in complexity), but it could easily grow and become
 -- too slow.
 --
-module Physics.TwoDimensions.GameCollisions where
+module Game.Physics.GameCollisions where
 
 import           Data.Foldable
 import           Prelude   hiding (concatMap)

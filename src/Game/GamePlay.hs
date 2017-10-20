@@ -41,9 +41,6 @@ import FRP.Yampa
 import FRP.Yampa.Extra
 import FRP.Yampa.Switches
 
--- General-purpose internal imports
-import Physics.TwoDimensions.GameCollisions
-
 -- Internal iports
 import Game.Constants
 import Game.GameState
@@ -55,6 +52,7 @@ import Game.Objects.Walls
 import Game.Objects.Player
 import Game.Objects.Balls
 import Game.Objects.Blocks
+import Game.Physics.GameCollisions
 
 -- * General state transitions
 
