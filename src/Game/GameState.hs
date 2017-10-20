@@ -8,8 +8,6 @@
 -- empty.
 module Game.GameState where
 
--- import FRP.Yampa as Yampa
-
 import Game.Objects
 import FRP.Yampa (Time)
 
@@ -32,8 +30,8 @@ neutralGameState = GameState
   , gameInfo    = GameInfo 0 0 GameLoading
   }
 
-data GameInfo = GameInfo { gameTime  :: Time
-                         , gameLevel :: Int
+data GameInfo = GameInfo { gameTime   :: Time
+                         , gameLevel  :: Int
                          , gameStatus :: GameStatus
                          }
 
