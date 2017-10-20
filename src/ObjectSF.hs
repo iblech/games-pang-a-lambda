@@ -7,9 +7,12 @@
 module ObjectSF where
 
 import FRP.Yampa
+import FRP.Yampa.Switches
 
 import Objects
 import Input
+
+type AliveObject = ListSF ObjectInput Object
 
 -- | Objects are defined as transformations that take 'ObjectInput' signals and
 -- return 'ObjectOutput' signals.

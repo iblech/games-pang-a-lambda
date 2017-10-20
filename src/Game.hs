@@ -188,7 +188,7 @@ timeProgressionHalt =   constant id        &&& mustHalt
 --
 -- This works by using an initial accumulator with no collisions, passed to
 -- a function that also produces a signal for new collisions.
-gamePlay :: [ListSF ObjectInput Object]    -- ^ Initial game objects
+gamePlay :: [AliveObject]                  -- ^ Initial game objects
          -> SF Controller (Objects, Time)  -- ^ Game input ~> Objects x time left
 gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlayInternal objs)
   where 
@@ -208,7 +208,7 @@ gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlayInternal objs)
 --
 -- The second value in the accumulator is the energy left.
 
-gamePlayInternal :: [ListSF ObjectInput Object]                       -- ^ Initial game objects
+gamePlayInternal :: [AliveObject]                                    -- ^ Initial game objects
                  -> SF (Controller,      (Objects.Collisions, Int))
                        ((Objects, Time), (Objects.Collisions, Int))  -- ^ Game Input x collisions x enery ~> Objects, time left, collisions, energy
 gamePlayInternal objs = 
@@ -233,12 +233,12 @@ gamePlayInternal objs =
 --
 --   Care should be taken so that objects do not overlap at the beginning of
 --   any level.
-initialObjects :: Int -> [ListSF ObjectInput Object]
+initialObjects :: Int -> [AliveObject]
 initialObjects level =
   objEnemies level ++ objBlocks level ++ objPlayers level ++ objWalls level
 
 -- | Player for each level.
-objPlayers :: Int -> [ListSF ObjectInput Object]
+objPlayers :: Int -> [AliveObject]
 objPlayers _ =
   [ player "player" initialLives (320, 20) True ]
 
@@ -247,7 +247,7 @@ objPlayers _ =
 
 -- WARNING: All objects need different names, both at the beginning and during
 -- gameplay.
-objEnemies :: Int -> [ListSF ObjectInput Object]
+objEnemies :: Int -> [AliveObject]
 objEnemies 0 =
   [ splittingBall "ballEnemy1" ballWidth (600, 300) (360, -350) ]
 objEnemies 1 =
@@ -271,7 +271,7 @@ objEnemies n =
 -- with. They need not be static.
 
 -- | List of blocks depending on the level.
-objBlocks :: Int -> [ListSF ObjectInput Object]
+objBlocks :: Int -> [AliveObject]
 objBlocks 0 = [ staticBlock      "block1" (200, 55)  (100, 57)               ]
 objBlocks 1 = [ oscillatingBlock "block1" (400, 200) (100, 57) 200 10   0  0 ]
 objBlocks 2 = [ oscillatingBlock "block1" (400, 200) (100, 57) 0    0 100 10 ]
@@ -281,7 +281,7 @@ objBlocks 3 = [ oscillatingBlock "block1" (324, 200) (100, 57) 200  6   0  0
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
 -- | Four walls around the scene.
-objWalls :: Int -> [ListSF ObjectInput Object]
+objWalls :: Int -> [AliveObject]
 objWalls _ = [ inertSF objSideRight
              , inertSF objSideTop
              , inertSF objSideLeft
@@ -291,9 +291,9 @@ objWalls _ = [ inertSF objSideRight
 -- * Game objects
 
 -- ** Player
-player :: ObjectName -> Int -> Pos2D -> Bool -> ListSF ObjectInput Object
+player :: ObjectName -> Int -> Pos2D -> Bool -> AliveObject
 player name lives p0 vul = ListSF $ proc i -> do
-  (ppos, pvel) <- playerProgress name p0 -< i
+  (ppos, pvel) <- playerMovement name p0 -< i
 
   let state = playerState (userInput i)
 
@@ -339,16 +339,8 @@ player name lives p0 vul = ListSF $ proc i -> do
     sumTime :: (DTime, DTime) -> DTime
     sumTime = uncurry (+)
 
-playerState :: Controller -> PlayerState
-playerState controller =
-  case (controllerLeft controller, controllerRight controller, controllerClick controller) of
-    (_,    _,    True) -> PlayerShooting
-    (True, _,    _)    -> PlayerLeft
-    (_,    True, _)    -> PlayerRight
-    _                  -> PlayerStand
-
-playerProgress :: ObjectName -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
-playerProgress pid p0 = proc i -> do
+playerMovement :: ObjectName -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
+playerMovement pid p0 = proc i -> do
   -- Obtain velocity based on state and input, and obtain
   -- velocity delta to be applied to the position.
   v  <- repeatSF getVelocity PlayerStand -< userInput i
@@ -389,25 +381,35 @@ playerProgress pid p0 = proc i -> do
    stateVel PlayerShooting = constant (0,            0)
 
    stateChanged :: PlayerState -> SF Controller (Event PlayerState)
-   stateChanged oldState = arr playerState >>> ifDiff oldState
+   stateChanged oldState = playerState ^>> ifDiff oldState
 
-playerGun :: ObjectName -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+playerState :: Controller -> PlayerState
+playerState controller =
+  case (controllerLeft controller, controllerRight controller, controllerClick controller) of
+    (_,    _,    True) -> PlayerShooting
+    (True, _,    _)    -> PlayerLeft
+    (_,    True, _)    -> PlayerRight
+    _                  -> PlayerStand
+
+-- ** Guns
+
+-- | The player's gun. Guns can fire shots, so guns may include
+--   more than one object.
+playerGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
 playerGun = singleShotGun
   -- To switch between different kinds of guns
   -- playerGun name = switch
   --   (singleShotGun name &&& after 5 ())
   --   (\_ -> multiShotGun name)
 
--- ** Guns
-
 -- | Gun that can be fired once until the bullet hits the wall or a ball, and
 --   then can be fired again.
-singleShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+singleShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
 singleShotGun name = revSwitch (constant [] &&& firedGun name)
                                (\fireLSF -> blockedGun name fireLSF)
 
 -- | Gun that has been fired.
-firedGun :: ObjectName -> SF (ObjectInput, Pos2D) (Event (ListSF ObjectInput Object))
+firedGun :: ObjectName -> SF (ObjectInput, Pos2D) (Event (AliveObject))
 firedGun name = proc (i, ppos) -> do
   -- Fire!!
   newF1  <- edge -< controllerClick (userInput i)
@@ -418,6 +420,7 @@ firedGun name = proc (i, ppos) -> do
 
 -- | Gun that cannot be fired until the current bullet hits
 --   the ceiling or a ball.
+blockedGun :: ObjectName -> AliveObject -> SF (ObjectInput, Pos2D) [AliveObject]
 blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& bulletDead fsf)
                                 (\_ -> singleShotGun name)
   where
@@ -427,13 +430,13 @@ blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& bulletDead fsf)
       returnA -< justDied
 
 -- | Gun that can be fired multiple times.
-multiShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+multiShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
 multiShotGun name = eventToList ^<< firedGun name
 
 -- | Fire \/ arrows \/ bullets \/ projectiles. If the third argument is
 --   'False', they die when they hit the top of the screen. If the third
 --   argument is 'True', they stuck for a while before they die.
-bullet :: ObjectName -> Pos2D -> Bool -> ListSF ObjectInput Object
+bullet :: ObjectName -> Pos2D -> Bool -> AliveObject
 bullet name (x0, y0) sticky = ListSF $ proc i -> do
 
   -- Calculate arrow tip
@@ -472,7 +475,7 @@ bullet name (x0, y0) sticky = ListSF $ proc i -> do
 -- ** Balls
 
 -- | A ball that splits in two when hit unless it is too small.
-splittingBall :: ObjectName -> Double -> Pos2D -> Vel2D -> ListSF ObjectInput Object
+splittingBall :: ObjectName -> Double -> Pos2D -> Vel2D -> AliveObject
 splittingBall bid size p0 v0 = ListSF $ timeTransformSF timeProgressionHalt $ proc i -> do
 
     -- Default, just bouncing behaviour
@@ -612,8 +615,8 @@ freeBall name size p0 v0 = proc (ObjectInput ci cs) -> do
    vdiffSF = proc (iv, acc, ci) -> do
                -- Calculate velocity difference by integrating acceleration
                -- Reset calculation when user requests to stop balls
-               vd <- restartOn (arr fst >>> integral)
-                               (arr snd >>> restartCond) -< (acc, ci)
+               vd <- restartOn (fst ^>> integral)
+                               (snd ^>> restartCond) -< (acc, ci)
 
                -- Add initial velocity, and cap the result
                v <- arr (uncurry (^+^)) -< (iv, vd)
@@ -629,7 +632,7 @@ freeBall name size p0 v0 = proc (ObjectInput ci cs) -> do
 
 -- | Static block builder, given a name, a size and its base
 -- position.
-staticBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
+staticBlock :: ObjectName -> Pos2D -> Size2D -> AliveObject
 staticBlock name pos size = ListSF $ timeTransformSF timeProgressionHalt $ constant
   (Object { objectName           = name
           , objectKind           = Block
@@ -647,7 +650,7 @@ oscillatingBlock :: ObjectName
                  -> Pos2D -> Size2D  -- Geometry
                  -> Double -> Double -- Horizontal oscillation amplitude and period
                  -> Double -> Double -- Vertical   oscillation amplitude and period
-                 -> ListSF ObjectInput Object
+                 -> AliveObject
 oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
   px' <- vx -< px
   py' <- vy -< py
