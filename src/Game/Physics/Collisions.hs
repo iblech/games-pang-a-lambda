@@ -49,18 +49,6 @@ velCollitionSide (vx, vy)
   --  -- | vy > 0 && abs vx < abs vy
   | otherwise                 = CollisionSide BottomSide
 
--- * Collisions
-type Collisions k = [Collision k]
-
--- | A collision is a list of objects that collided, plus their velocities as
--- modified by the collision.
---
--- Take into account that the same object could take part in several
--- simultaneous collitions, so these velocities should be added (per object).
-data Collision k = Collision
-  { collisionData :: [(k, Vel2D)] } -- ObjectId x Velocity
- deriving Show
-
 detectCollision :: (PhysicalObject o k Shape) => o -> o -> Maybe (Collision k)
 detectCollision obj1 obj2
   | overlap obj1 obj2

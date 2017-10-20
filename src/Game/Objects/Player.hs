@@ -27,6 +27,7 @@ import FRP.Yampa.Switches
 -- General-purpose internal imports
 import Data.Extra.Ord
 import Physics.TwoDimensions.Dimensions
+import Physics.TwoDimensions.PhysicalObjects as Collisions
 
 -- Internal iports
 import Game.Constants

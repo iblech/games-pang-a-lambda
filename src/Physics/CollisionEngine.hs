@@ -9,17 +9,13 @@
 -- (making it almost linear in complexity), but it could easily grow and become
 -- too slow.
 --
-module Game.Physics.GameCollisions where
+module Physics.CollisionEngine where
 
 import           Data.Foldable
 import           Prelude   hiding (concatMap)
 import           Data.List hiding (concatMap)
 import           Data.Maybe
-import           Physics.TwoDimensions.PhysicalObjects
-import           Game.Physics.Collisions
-
-import qualified Game.Physics.Collisions      as C
-import           Game.Physics.Shapes
+import           Physics.TwoDimensions.PhysicalObjects as C
 
 -- | Given a list of objects, it detects all the collisions between them.
 --
@@ -27,7 +23,7 @@ import           Game.Physics.Shapes
 -- number of objects and m the number of moving objects (right now,
 -- only 2).
 --
-detectCollisions :: Foldable t => (Eq n , PhysicalObject o n Shape) => t o -> Collisions n
+detectCollisions :: Foldable t => (Eq n , PhysicalObject o n s) => t o -> Collisions n
 detectCollisions objsT = flattened
   where -- Eliminate empty collision sets
         -- TODO: why is this really necessary?
@@ -44,20 +40,20 @@ detectCollisions objsT = flattened
 
 -- | Detect collisions between each moving object and
 -- every other object.
-detectCollisions' :: (Foldable t, Foldable u) => (Eq n, PhysicalObject o n Shape) => t o -> u o -> [Collision n]
+detectCollisions' :: (Foldable t, Foldable u) => (Eq n, PhysicalObject o n s) => t o -> u o -> [Collision n]
 detectCollisions' objsT ms = concatMap (detectCollisions'' objsT) ms
 
 -- | Detect collisions between one specific moving object and every existing
 -- object. Each collision is idependent of the rest (which is not necessarily
 -- what should happen, but since the transformed velocities are eventually
 -- added, there isn't much difference in the end).
-detectCollisions'' :: Foldable t => (Eq n, PhysicalObject o n Shape) => t o -> o -> [Collision n]
+detectCollisions'' :: Foldable t => (Eq n, PhysicalObject o n s) => t o -> o -> [Collision n]
 detectCollisions'' objsT m = concatMap (detectCollisions''' m) (toList objsT)
 
 -- | Detect a possible collision between two objects. Uses the object's keys to
 -- distinguish them. Uses the basic 'Object'-based 'detectCollision' to
 -- determine whether the two objects do collide.
-detectCollisions''' :: (Eq n, PhysicalObject o n Shape) => o -> o -> [Collision n]
+detectCollisions''' :: (Eq n, PhysicalObject o n s) => o -> o -> [Collision n]
 detectCollisions''' m o
  | physObjectId m == physObjectId o = []    -- Same object -> no collision
- | otherwise                        = maybeToList (detectCollision m o)
+ | otherwise                        = maybeToList (physDetectCollision m o)

@@ -86,7 +86,6 @@ executable pang-a-lambda-physics
                  Game.Objects
                  Game.ObjectSF
                  Game.Resources
-                 Game.Physics.GameCollisions
                  Game.Physics.Shapes
                  Game.Physics.Collisions
 
@@ -97,6 +96,7 @@ executable pang-a-lambda-physics
                  Data.IdentityList
                  Graphics.UI.Extra.SDL
                  Physics.Collisions
+                 Physics.CollisionEngine
                  Physics.Shapes
                  Physics.TwoDimensions.Dimensions
                  Physics.TwoDimensions.PhysicalObjects
@@ -160,7 +160,6 @@ executable pang-a-lambda-splitballs
                    Game.Objects
                    Game.ObjectSF
                    Game.Resources
-                   Game.Physics.GameCollisions
                    Game.Physics.Shapes
                    Game.Physics.Collisions
 
@@ -169,6 +168,7 @@ executable pang-a-lambda-splitballs
                    Data.Extra.Num
                    Data.Extra.VectorSpace
                    Graphics.UI.Extra.SDL
+                   Physics.CollisionEngine
                    Physics.TwoDimensions.Dimensions
                    Physics.TwoDimensions.PhysicalObjects
     default-language:    Haskell2010
@@ -209,7 +209,6 @@ executable pang-a-lambda
                    Game.Objects.Balls
                    Game.ObjectSF
                    Game.Physics.Collisions
-                   Game.Physics.GameCollisions
                    Game.Physics.Shapes
                    Game.Resources
 
@@ -222,6 +221,7 @@ executable pang-a-lambda
                    FRP.Yampa.Extra
                    Graphics.UI.Extra.SDL
                    Physics.Collisions
+                   Physics.CollisionEngine
                    Physics.Shapes
                    Physics.TwoDimensions.Dimensions
                    Physics.TwoDimensions.PhysicalObjects

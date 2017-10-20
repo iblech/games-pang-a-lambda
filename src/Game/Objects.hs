@@ -9,14 +9,14 @@ import Data.Maybe (listToMaybe)
 import FRP.Yampa.VectorSpace
 
 import           Physics.TwoDimensions.Dimensions
-import           Physics.TwoDimensions.PhysicalObjects
+import           Physics.TwoDimensions.PhysicalObjects as P
 
 import qualified Game.Physics.Collisions      as C
 import Game.Constants
 import Game.Physics.Shapes
 
-type Collision  = C.Collision  (ObjectName, ObjectKind)
-type Collisions = C.Collisions (ObjectName, ObjectKind)
+type Collision  = P.Collision  (ObjectName, ObjectKind)
+type Collisions = P.Collisions (ObjectName, ObjectKind)
 
 -- | Check if collision is of given type.
 collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
@@ -100,6 +100,7 @@ instance PhysicalObject Object (String, ObjectKind) Shape where
   physObjectId x      = (objectName x, objectKind x)
   physObjectUpdatePos = \o p -> o { objectPos = p }
   physObjectUpdateVel = \o v -> o { objectVel = v }
+  physDetectCollision = C.detectCollision
 
 objShape :: Object -> Shape
 objShape obj = case objectProperties obj of
