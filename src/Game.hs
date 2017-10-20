@@ -150,14 +150,14 @@ outOfEnemies = arr outOfEnemies'
 
 -- * Time manipulation
 
--- | Time transformation SF that allows time to be reversed.
+-- | Time transformation that allows time to be reversed.
 timeProgressionReverse :: SF Controller (DTime -> DTime)
 timeProgressionReverse = proc (c) -> do
   -- NOTE: Another option is slowDown
   let rev  = if controllerReverse c then ((-1)*) else id
   returnA -< rev
 
--- | Time transformation SF that slows down time upon request.
+-- | Time transformation that slows down time upon request.
 timeProgressionSlowDown :: SF Controller (DTime -> DTime)
 timeProgressionSlowDown = proc (c) -> do
   rec let slow = controllerReverse c
@@ -172,17 +172,13 @@ timeProgressionSlowDown = proc (c) -> do
    maxPower :: Double
    maxPower = 5
 
--- | Time transformation function that can halt time for an object.
+-- | Time transformation that can halt time for an object.
 timeProgressionHalt :: SF ObjectInput (DTime -> DTime)
-timeProgressionHalt = userInput ^>> stopClock
-
--- | Time transformation function that can halt time upon user request.
-stopClock :: SF Controller (DTime -> DTime)
-stopClock =   arr halt
-          ||> constant (const 0) &&& after 25 ()
-          ||> stopClock
+timeProgressionHalt =   constant id        &&& mustHalt
+                    ||> constant (const 0) &&& after 25 ()
+                    ||> timeProgressionHalt
  where
-   halt c = if controllerHalt c then (const 0, Event ()) else (id, noEvent)
+   mustHalt = (controllerHalt . userInput) ^>> edge
 
 -- ** Game with partial state information
 
