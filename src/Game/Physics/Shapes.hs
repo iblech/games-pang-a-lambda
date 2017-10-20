@@ -5,11 +5,10 @@
 module Game.Physics.Shapes where
 
 import FRP.Yampa.VectorSpace
+import Physics.Collisions
 import Physics.TwoDimensions.Dimensions
 
 import Game.Constants
-
-import Physics.Collisions
 
 -- | Side of a rectangle
 data Side = TopSide | BottomSide | LeftSide | RightSide
