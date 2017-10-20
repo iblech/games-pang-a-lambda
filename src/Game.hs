@@ -433,11 +433,11 @@ playerProgress pid p0 = proc i -> do
    stateChanged oldState = arr playerState >>> ifDiff oldState
 
 playerGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-playerGun = normalGun
+playerGun = singleShotGun
   -- To switch between different kinds of guns
   -- playerGun name = switch
-  --   (normalGun name &&& after 5 ())
-  --   (\_ -> multipleGun name)
+  --   (singleShotGun name &&& after 5 ())
+  --   (\_ -> multiShotGun name)
 
 -- ** Guns
 
@@ -445,13 +445,13 @@ playerGun = normalGun
 
 -- | Gun that can be fired once until the bullet hits the wall or a ball, and
 --   then can be fired again.
-normalGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-normalGun name = revSwitch (constant [] &&& gunFired name)
-                           (\fireLSF -> blockedGun name fireLSF)
+singleShotGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+singleShotGun name = revSwitch (constant [] &&& firedGun name)
+                               (\fireLSF -> blockedGun name fireLSF)
 
 -- | Gun that has been fired.
-gunFired :: String -> SF (ObjectInput, Pos2D) (Event (ListSF ObjectInput Object))
-gunFired name = proc (i, ppos) -> do
+firedGun :: String -> SF (ObjectInput, Pos2D) (Event (ListSF ObjectInput Object))
+firedGun name = proc (i, ppos) -> do
   -- Fire!!
   newF1  <- edge -< controllerClick (userInput i)
   uniqId <- (\t -> "bullet" ++ name ++ show t) ^<< time -< ()
@@ -462,16 +462,16 @@ gunFired name = proc (i, ppos) -> do
 -- | Gun that cannot be fired until the current bullet hits
 --   the ceiling or a ball.
 blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& bulletDead fsf)
-                             (\_ -> normalGun name)
+                                (\_ -> singleShotGun name)
   where
     bulletDead fsf = proc (oi, _) -> do
       (_, b, _) <- listSF fsf -< oi
-      justDied <- edge -< b
+      justDied  <- edge       -< b
       returnA -< justDied
 
 -- | Gun that can be fired multiple times.
-multipleGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-multipleGun name = eventToList ^<< gunFired name
+multiShotGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+multiShotGun name = eventToList ^<< firedGun name
 
 -- *** Fire \/ arrows \/ bullets \/ projectiles
 
