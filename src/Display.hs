@@ -154,9 +154,9 @@ displayInfo screen resRef over objs = do
 paintObject :: Surface -> IORef Resources -> Double -> Object -> IO ()
 paintObject screen resRef time object = do
   resources <- readIORef resRef
-  case objectKind object of
-    (Side {}) -> return ()
-    (Ball ballSize) -> void $ do
+  case objectProperties object of
+    (SideProps {}) -> return ()
+    (BallProps ballSize) -> void $ do
       let (px,py)  = (\(u,v) -> (u, gameHeight - v)) (objectPos object)
       let (x,y)    = (round *** round) (px,py)
           (vx,vy)  = objectVel object
@@ -176,7 +176,7 @@ paintObject screen resRef time object = do
       -- SDL.blitSurface message Nothing screen (Just rect)
       -- return ()
 
-    (Block sz@(w', h')) -> void $ do
+    (BlockProps sz@(w', h')) -> void $ do
       let (px,py)  = (objectPos object)
           (x,y)    = (round *** round) (px,gameHeight - py -h')
           -- (w,h)    = (round *** round) sz
@@ -184,7 +184,7 @@ paintObject screen resRef time object = do
       blitSurface blockImg Nothing screen (Just (Rect x y (-1) (-1)))
       -- fillRect screen (Just (Rect x y w h)) (Pixel blockColor)
 
-    (Player state _ vulnerable energy) -> do
+    (PlayerProps state _ vulnerable energy) -> do
       let blinkOn  = vulnerable || (even (round (time * 10)))
       when blinkOn $ void $ do
 
@@ -218,7 +218,7 @@ paintObject screen resRef time object = do
         -- SDL.blitSurface message Nothing screen (Just rect)
         -- return ()
 
-    Projectile -> do
+    ProjectileProps -> do
         let (x0,y0)   = (\(x,y) -> (x - 5, height - y)) $ objectPos object
             (dx, dy)  = (10, snd (objectPos object))
             (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)

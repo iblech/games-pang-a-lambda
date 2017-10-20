@@ -93,7 +93,8 @@ objSideBottom = objWall "bottomWall" BottomSide (0, gameHeight)
 objWall :: ObjectName -> Side -> Pos2D -> ObjectSF
 objWall name side pos = arr $ \(ObjectInput ci cs) ->
   Object { objectName           = name
-         , objectKind           = Side side
+         , objectKind           = Side
+         , objectProperties     = SideProps side
          , objectPos            = pos
          , objectVel            = (0,0)
          , canCauseCollisions   = False

@@ -92,9 +92,9 @@ playerDead' gs = gamePlaying && dead
        || not (null (filter playerIsDead (gameObjects gs)))
 
    -- Player dead if it has no more lives left
-   playerIsDead o = case objectKind o of
-     (Player _ lives _ _) -> lives < 0
-     otherwise            -> False
+   playerIsDead o = case objectProperties o of
+     (PlayerProps _ lives _ _) -> lives < 0
+     otherwise                 -> False
 
    -- This is only defined when the game is in progress.
    gamePlaying = GamePlaying == gameStatus (gameInfo gs)
@@ -197,7 +197,7 @@ gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlay' objs)
 
 gamePlay' :: [ListSF ObjectInput Object]
           -> SF (Controller, (Objects.Collisions, Int))
-                (([Object], Time), (Collisions.Collisions String, Int))
+                (([Object], Time), (Collisions.Collisions (String, ObjectKind), Int))
 gamePlay' objs = 
   proc (input, (cs, el)) -> do
      -- Adapt Input
@@ -289,7 +289,8 @@ blocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 staticBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
 staticBlock name pos size = ListSF $ timeTransformSF timeProgressionHalt $ constant
   (Object { objectName           = name
-          , objectKind           = Block size
+          , objectKind           = Block
+          , objectProperties     = BlockProps size
           , objectPos            = pos
           , objectVel            = (0,0)
           , canCauseCollisions   = False
@@ -308,7 +309,8 @@ oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ 
   px' <- vx -< px
   py' <- vy -< py
   returnA -< (Object { objectName           = name
-                     , objectKind           = Block size
+                     , objectKind           = Block
+                     , objectProperties     = BlockProps size
                      , objectPos            = (px', py')
                      , objectVel            = (0,0)
                      , canCauseCollisions   = False
@@ -347,7 +349,7 @@ player lives name p0 vul = ListSF $ proc i -> do
 
   -- Dead?
   let hitByBall = not $ null
-                $ collisionMask name ("ball" `isPrefixOf`)
+                $ collisionMask (name, Player) (collisionObjectKind Ball)
                 $ collisions i
 
   vulnerable <- alwaysForward $ 
@@ -366,7 +368,8 @@ player lives name p0 vul = ListSF $ proc i -> do
 
   -- Final player
   returnA -< (Object { objectName           = name
-                     , objectKind           = Player state lives vulnerable (round energy)
+                     , objectKind           = Player
+                     , objectProperties     = PlayerProps state lives vulnerable (round energy)
                      , objectPos            = ppos
                      , objectVel            = pvel
                      , canCauseCollisions   = True
@@ -396,15 +399,17 @@ playerProgress pid p0 = proc i -> do
   -- velocity delta to be applied to the position.
   v  <- repeatSF getVelocity PlayerStand -< userInput i
 
-  let collisionsWithBlocks = filter onlyBlocks (collisions i)
+  let collisionsWithBlocks :: Collisions.Collisions (ObjectName, ObjectKind)
+      collisionsWithBlocks = filter onlyBlocks (collisions i)
 
+      onlyBlocks :: Collisions.Collision (ObjectName, ObjectKind) -> Bool
       onlyBlocks (Collision cdata) = any (playerCollisionElem . fst) cdata
 
       playerCollisionElem s = isBlockId s || isWallId s
-      isBlockId = ("block" `isPrefixOf`)
-      isWallId  = ("Wall" `isSuffixOf`)
+      isBlockId = ((== Block) . snd)
+      isWallId  = ((== Side) . snd)
 
-  let ev = changedVelocity pid collisionsWithBlocks
+  let ev = changedVelocity (pid, Player) collisionsWithBlocks
       vc = fromMaybe v ev
 
   (px,py) <- (p0 ^+^) ^<< alwaysForward integral -< vc
@@ -493,12 +498,13 @@ bullet name (x0, y0) sticky = ListSF $ proc i -> do
 
   let dead = isEvent hit || hitBall || hitBlock
 
-  let object = Object { objectName = name
-                      , objectKind = Projectile
-                      , objectPos  = (x0, y)
-                      , objectVel  = (0, 0)
+  let object = Object { objectName         = name
+                      , objectKind         = Projectile
+                      , objectProperties   = ProjectileProps
+                      , objectPos          = (x0, y)
+                      , objectVel          = (0, 0)
                       , canCauseCollisions = True
-                      , collisionEnergy = 0
+                      , collisionEnergy    = 0
                       }
 
   returnA -< (object, dead, [])
@@ -506,8 +512,8 @@ bullet name (x0, y0) sticky = ListSF $ proc i -> do
  where
 
    bulletHitCeiling = (>= height) ^>> edge
-   bulletCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
-   bulletCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
+   bulletCollidedWithBall  bid = not . null . collisionMask (bid, Projectile) (collisionObjectKind Ball)
+   bulletCollidedWithBlock bid = not . null . collisionMask (bid, Projectile) (collisionObjectKind Block)
 
    stickyDeath :: Bool -> SF a (Event ())
    stickyDeath True  = after 30 ()
@@ -558,7 +564,7 @@ splittingBall size bid p0 v0 = ListSF $ timeTransformSF timeProgressionHalt $ pr
 
     -- | Determine if a given fall has been hit by a bullet.
     ballIsHit :: ObjectName -> Objects.Collisions -> Bool
-    ballIsHit bid = not . null . collisionMask bid ("bullet" `isPrefixOf`)
+    ballIsHit bid = not . null . collisionMask (bid, Ball) (collisionObjectKind Projectile)
 
 -- | A bouncing ball that moves freely until there is a collision, then bounces
 -- and goes on and on.
@@ -611,13 +617,13 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   -- detect an event directly after
   -- ev <- edgeJust -< changedVelocity "ball" cs
   let collisionsWithoutBalls = filter (not . allBalls) cs
-      allBalls (Collision cdata) = all (isPrefixOf "ball" . fst) cdata
+      allBalls (Collision cdata) = all ((== Ball) . snd . fst) cdata
 
   let collisionsWithoutPlayer = filter (not . anyPlayer)
                                  collisionsWithoutBalls
-      anyPlayer (Collision cdata) = any (isPrefixOf "player" . fst) cdata
+      anyPlayer (Collision cdata) = any ((== Player) . snd . fst) cdata
 
-  let ev = maybeToEvent (changedVelocity bid collisionsWithoutPlayer)
+  let ev = maybeToEvent (changedVelocity (bid, Ball) collisionsWithoutPlayer)
   returnA -< fmap (\v -> (objectPos o, v)) ev
 
 -- | Position of the ball, starting from p0 with velicity v0, since the time of
@@ -638,7 +644,8 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
   pos <- (p0 ^+^) ^<< integral -< vel
 
   let obj = Object { objectName           = name
-                   , objectKind           = Ball size
+                   , objectKind           = Ball
+                   , objectProperties     = BallProps size
                    , objectPos            = pos
                    , objectVel            = vel
                    , canCauseCollisions   = True
@@ -686,3 +693,6 @@ playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
 -- Maybe use tasks?
 infixr 2 ||>
 (||>) sf sfC = switch sf (const sfC)
+
+collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
+collisionObjectKind ok1 (_, ok2) = ok1 == ok2
