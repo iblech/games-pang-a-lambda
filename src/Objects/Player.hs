@@ -17,8 +17,8 @@
 module Objects.Player where
 
 -- External imports
-import Prelude hiding (id, (.))
-import Control.Category (id, (.))
+import Prelude hiding ((.))
+import Control.Category ((.))
 import Data.Maybe
 import FRP.Yampa
 import FRP.Yampa.Extra
@@ -26,20 +26,14 @@ import FRP.Yampa.Switches
 
 -- General-purpose internal imports
 import Data.Extra.Ord
-import Data.Extra.VectorSpace
-import Physics.Oscillator
-import Physics.TwoDimensions.Collisions       as Collisions
+import Physics.TwoDimensions.Collisions as Collisions
 import Physics.TwoDimensions.Dimensions
-import Physics.TwoDimensions.GameCollisions
-import Physics.TwoDimensions.PhysicalObjects
 
 -- Internal iports
 import Constants
-import GameState
 import Input
 import Objects
 import ObjectSF
-import Objects.Walls
 
 -- | A player with a given it, lives, position and initial vulnerability.
 player :: ObjectName -> Int -> Pos2D -> Bool -> AliveObject
