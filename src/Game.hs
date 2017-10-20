@@ -39,9 +39,7 @@ module Game
 -- External imports
 import Prelude hiding (id, (.))
 import Control.Category (id, (.))
-import Data.List
 import Data.Maybe
-import Debug.Trace
 import FRP.Yampa
 import FRP.Yampa.Extra
 import FRP.Yampa.Switches
@@ -53,7 +51,6 @@ import Physics.Oscillator
 import Physics.TwoDimensions.Collisions       as Collisions
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.GameCollisions
-import Physics.TwoDimensions.Shapes
 import Physics.TwoDimensions.PhysicalObjects
 
 -- Internal iports
@@ -678,24 +675,6 @@ playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
 -- | Check if collision is of given type.
 collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
 collisionObjectKind ok1 (_, ok2) = ok1 == ok2
-
--- ** Yampa aux
-
--- | Singleton if Event, empty list otherwise.
-eventToList :: Event a -> [a]
-eventToList NoEvent   = []
-eventToList (Event a) = [a]
-
--- | AndThen: Execute an sf until it fires an event, and then execute another SF.
-
--- TODO: Is there a better abstraction to write this?
--- Maybe use tasks?
-infixr 2 ||>
-(||>) sf sfC = switch sf (const sfC)
-
--- | Until: sf1 until sf2 holds
-(>?) :: SF a b -> SF b (Event c) -> SF a (b, Event c)
-(>?) sf0 sf = sf0 >>> (identity &&& sf)
 
 -- ** Other aux
 

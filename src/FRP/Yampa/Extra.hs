@@ -10,6 +10,26 @@ import FRP.Yampa.Switches
 maybeToEvent :: Maybe a -> Event a
 maybeToEvent = maybe noEvent Event
 
+-- | Singleton if Event, empty list otherwise.
+eventToList :: Event a -> [a]
+eventToList NoEvent   = []
+eventToList (Event a) = [a]
+
+-- * Switching
+
+-- | AndThen: Execute an sf until it fires an event, and then execute another SF.
+
+-- TODO: Is there a better abstraction to write this?
+-- Maybe use tasks?
+infixr 2 ||>
+(||>) sf sfC = switch sf (const sfC)
+
+-- | Until: sf1 until sf2 holds
+(>?) :: SF a b -> SF b (Event c) -> SF a (b, Event c)
+(>?) sf0 sf = sf0 >>> (identity &&& sf)
+
+-- * ListSFs
+
 -- ** ListSF that never dies or produces offspring
 inertSF :: SF a b -> ListSF a b
 inertSF sf = ListSF (sf >>> arr (\o -> (o, False, [])))
