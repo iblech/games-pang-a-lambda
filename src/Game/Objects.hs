@@ -8,10 +8,10 @@ import Control.Arrow ((***))
 import Data.Maybe (listToMaybe)
 import FRP.Yampa.VectorSpace
 
-import qualified Physics.TwoDimensions.Collisions      as C
 import           Physics.TwoDimensions.Dimensions
 import           Physics.TwoDimensions.PhysicalObjects
 
+import qualified Game.Physics.Collisions      as C
 import Game.Constants
 import Game.Physics.Shapes
 

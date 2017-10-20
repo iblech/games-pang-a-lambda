@@ -3,7 +3,7 @@
 --
 -- Based on the physics module, it determines the side of collision
 -- between shapes.
-module Physics.TwoDimensions.Collisions where
+module Game.Physics.Collisions where
 
 import Data.Extra.Num
 import Data.Maybe

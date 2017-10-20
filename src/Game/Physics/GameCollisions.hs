@@ -15,10 +15,10 @@ import           Data.Foldable
 import           Prelude   hiding (concatMap)
 import           Data.List hiding (concatMap)
 import           Data.Maybe
-import           Physics.TwoDimensions.Collisions
-import qualified Physics.TwoDimensions.Collisions      as C
 import           Physics.TwoDimensions.PhysicalObjects
+import           Game.Physics.Collisions
 
+import qualified Game.Physics.Collisions      as C
 import           Game.Physics.Shapes
 
 -- | Given a list of objects, it detects all the collisions between them.
