@@ -1,4 +1,3 @@
-{-# LANGUAGE Arrows #-}
 -- | This module defines the game as a big Signal Function that transforms a
 -- Signal carrying a Input 'Controller' information into a Signal carrying
 -- 'GameState'.

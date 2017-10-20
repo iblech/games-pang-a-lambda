@@ -38,45 +38,45 @@ loadResources = do
   let gameFont = "data/lacuna.ttf"
   font2  <- TTF.openFont gameFont 8 -- 32: fixed size?
 
-  backImages <- mapM (SDL.load) ["data/back.png"]
+  backImages <- mapM SDL.load ["data/back.png"]
 
-  hitImages  <- mapM (SDL.load) ["data/hit0.png"] -- , "data/hit2.png"]
+  hitImages  <- mapM SDL.load ["data/hit0.png"] -- , "data/hit2.png"]
 
-  walkLeftImages <- mapM (SDL.load) [ "data/left-p3_walk01.png"
-                                    , "data/left-p3_walk02.png"
-                                    , "data/left-p3_walk03.png"
-                                    , "data/left-p3_walk04.png"
-                                    , "data/left-p3_walk05.png"
-                                    , "data/left-p3_walk06.png"
-                                    , "data/left-p3_walk07.png"
-                                    , "data/left-p3_walk08.png"
-                                    , "data/left-p3_walk09.png"
-                                    , "data/left-p3_walk10.png"
-                                    , "data/left-p3_walk11.png"
-                                    ]
+  walkLeftImages <- mapM SDL.load [ "data/left-p3_walk01.png"
+                                  , "data/left-p3_walk02.png"
+                                  , "data/left-p3_walk03.png"
+                                  , "data/left-p3_walk04.png"
+                                  , "data/left-p3_walk05.png"
+                                  , "data/left-p3_walk06.png"
+                                  , "data/left-p3_walk07.png"
+                                  , "data/left-p3_walk08.png"
+                                  , "data/left-p3_walk09.png"
+                                  , "data/left-p3_walk10.png"
+                                  , "data/left-p3_walk11.png"
+                                  ]
 
-  walkRightImages <- mapM (SDL.load) [ "data/p3_walk01.png"
-                                     , "data/p3_walk02.png"
-                                     , "data/p3_walk03.png"
-                                     , "data/p3_walk04.png"
-                                     , "data/p3_walk05.png"
-                                     , "data/p3_walk06.png"
-                                     , "data/p3_walk07.png"
-                                     , "data/p3_walk08.png"
-                                     , "data/p3_walk09.png"
-                                     , "data/p3_walk10.png"
-                                     , "data/p3_walk11.png"
-                                     ]
+  walkRightImages <- mapM SDL.load [ "data/p3_walk01.png"
+                                   , "data/p3_walk02.png"
+                                   , "data/p3_walk03.png"
+                                   , "data/p3_walk04.png"
+                                   , "data/p3_walk05.png"
+                                   , "data/p3_walk06.png"
+                                   , "data/p3_walk07.png"
+                                   , "data/p3_walk08.png"
+                                   , "data/p3_walk09.png"
+                                   , "data/p3_walk10.png"
+                                   , "data/p3_walk11.png"
+                                   ]
 
-  standingImages <- mapM (SDL.load) ["data/standing.png"]
+  standingImages <- mapM SDL.load ["data/standing.png"]
 
-  ballImages100  <- mapM (SDL.load) ["data/ball1-200.png", "data/ball2-200.png"]
-  ballImages50   <- mapM (SDL.load) ["data/ball1-100.png", "data/ball2-100.png"]
-  ballImages25   <- mapM (SDL.load) ["data/ball1-50.png",  "data/ball2-50.png"]
-  ballImages12   <- mapM (SDL.load) ["data/ball1-25.png",  "data/ball2-25.png"]
+  ballImages100  <- mapM SDL.load ["data/ball1-200.png", "data/ball2-200.png"]
+  ballImages50   <- mapM SDL.load ["data/ball1-100.png", "data/ball2-100.png"]
+  ballImages25   <- mapM SDL.load ["data/ball1-50.png",  "data/ball2-50.png"]
+  ballImages12   <- mapM SDL.load ["data/ball1-25.png",  "data/ball2-25.png"]
   blockImg       <- SDL.load "data/block100.png"
 
-  backgrounds <- mapM (SDL.load) ["data/level0.png","data/level1.png","data/level2.png","data/level3.png"]
+  backgrounds <- mapM SDL.load ["data/level0.png","data/level1.png","data/level2.png","data/level3.png"]
 
   -- Return all resources (just the font)
   newIORef $ Resources font font2 [ (PlayerVisualStand, (0, standingImages))
@@ -234,7 +234,7 @@ getBallImage resRef size = do
                     25  -> 2
                     _   -> 3
   let (n, imgs) = (ballImages resources) !! ballIndex
-      n' = if (n `div` 10) >= (length imgs - 1) then 0 else (n+1)
+      n' = if (n `div` 10) >= (length imgs - 1) then 0 else n + 1
       newImages = updateL (ballImages resources) ballIndex (n', imgs)
   writeIORef resRef (resources { ballImages = newImages })
   return (imgs!!(n `div` 10))
