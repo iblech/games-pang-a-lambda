@@ -14,7 +14,7 @@
 -- You may want to read the basic definition of 'Controller' and 'ObjectSF'
 -- before you attempt to go through this module.
 --
-module Objects.Player where
+module Game.Objects.Player where
 
 -- External imports
 import Prelude hiding ((.))
@@ -30,10 +30,10 @@ import Physics.TwoDimensions.Collisions as Collisions
 import Physics.TwoDimensions.Dimensions
 
 -- Internal iports
-import Constants
-import Input
-import Objects
-import ObjectSF
+import Game.Constants
+import Game.Input
+import Game.Objects
+import Game.ObjectSF
 
 -- | A player with a given it, lives, position and initial vulnerability.
 player :: ObjectName -> Int -> Pos2D -> Bool -> AliveObject

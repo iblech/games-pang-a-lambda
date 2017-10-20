@@ -10,7 +10,7 @@
 --
 -- In this case, we only have one:  mouse/keyboard combination.
 --
-module Input where
+module Game.Input where
 
 -- External imports
 import Data.IORef

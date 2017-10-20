@@ -8,8 +8,8 @@ import FRP.Yampa
 import FRP.Yampa.Extra
 
 -- Internal iports
-import Input
-import ObjectSF
+import Game.Input
+import Game.ObjectSF
 
 -- | Time transformation that allows time to be reversed.
 timeProgressionReverse :: SF Controller (DTime -> DTime)

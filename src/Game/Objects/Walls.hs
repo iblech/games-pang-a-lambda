@@ -31,7 +31,7 @@
 -- You may want to read the basic definition of 'GameState', 'Controller' and
 -- 'ObjectSF' before you attempt to go through this module.
 --
-module Objects.Walls where
+module Game.Objects.Walls where
 
 -- External imports
 import Prelude hiding (id, (.))
@@ -42,9 +42,9 @@ import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.Shapes
 
 -- Internal iports
-import Constants
-import Objects
-import ObjectSF
+import Game.Constants
+import Game.Objects
+import Game.ObjectSF
 
 -- * Walls
 

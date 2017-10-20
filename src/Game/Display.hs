@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-module Display where
+module Game.Display where
 
 import           Control.Arrow              ((***))
 import           Control.Monad
@@ -13,10 +13,10 @@ import qualified Graphics.UI.SDL.TTF        as TTF
 import           Graphics.UI.Extra.SDL      as SDL
 import           Text.Printf
 
-import Constants
-import GameState
-import Objects
-import Resources
+import Game.Constants
+import Game.GameState
+import Game.Objects
+import Game.Resources
 import Physics.TwoDimensions.Shapes
 
 -- | Ad-hoc resource loading

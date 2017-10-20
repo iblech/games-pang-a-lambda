@@ -7,7 +7,7 @@ module Physics.TwoDimensions.Shapes where
 import FRP.Yampa.VectorSpace
 import Physics.TwoDimensions.Dimensions
 
-import Constants
+import Game.Constants
 
 import Physics.Collisions
 

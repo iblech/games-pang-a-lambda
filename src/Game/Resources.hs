@@ -1,4 +1,4 @@
-module Resources where
+module Game.Resources where
 
 import qualified Graphics.UI.SDL           as SDL
 import qualified Graphics.UI.SDL.TTF       as TTF

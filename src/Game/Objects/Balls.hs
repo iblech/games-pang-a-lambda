@@ -14,7 +14,7 @@
 -- You may want to read the basic definition of 'Controller' and 'ObjectSF'
 -- before you attempt to go through this module.
 --
-module Objects.Balls where
+module Game.Objects.Balls where
 
 -- External imports
 import Prelude hiding ((.))
@@ -30,10 +30,10 @@ import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects
 
 -- Internal iports
-import Constants
-import Input
-import Objects
-import ObjectSF
+import Game.Constants
+import Game.Input
+import Game.Objects
+import Game.ObjectSF
 import Game.Time
 
 -- ** Balls
@@ -80,7 +80,7 @@ splittingBall bid size p0 v0 = ListSF $ timeTransformSF timeProgressionHalt $ pr
   where
 
     -- | Determine if a given fall has been hit by a bullet.
-    ballIsHit :: ObjectName -> Objects.Collisions -> Bool
+    ballIsHit :: ObjectName -> Game.Objects.Collisions -> Bool
     ballIsHit bid = not . null . collisionMask (bid, Ball) (collisionObjectKind Projectile)
 
 -- | A bouncing ball that moves freely until there is a collision, then bounces

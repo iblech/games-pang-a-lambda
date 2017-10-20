@@ -6,11 +6,11 @@
 -- (there are no menus, etc.) we assume that there's
 -- always some gameplay info, even though it can be
 -- empty.
-module GameState where
+module Game.GameState where
 
 -- import FRP.Yampa as Yampa
 
-import Objects
+import Game.Objects
 import FRP.Yampa (Time)
 
 -- | The running state is given by a bunch of 'Objects' and the current general

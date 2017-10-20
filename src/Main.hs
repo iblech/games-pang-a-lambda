@@ -1,11 +1,10 @@
-import Control.Applicative
 import Data.IORef
 import FRP.Yampa as Yampa
 import System.Mem
 
-import Game
-import Display
-import Input
+import Game.Display
+import Game.GamePlay
+import Game.Input
 import Graphics.UI.Extra.SDL
 
 main :: IO ()

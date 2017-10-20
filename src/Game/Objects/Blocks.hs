@@ -14,7 +14,7 @@
 -- You may want to read the basic definition of 'Controller' and 'ObjectSF'
 -- before you attempt to go through this module.
 --
-module Objects.Blocks where
+module Game.Objects.Blocks where
 
 -- External imports
 import Prelude hiding (id, (.))
@@ -27,8 +27,8 @@ import Physics.Oscillator
 import Physics.TwoDimensions.Dimensions
 
 -- Internal iports
-import Objects
-import ObjectSF
+import Game.Objects
+import Game.ObjectSF
 import Game.Time
 
 -- ** Blocks

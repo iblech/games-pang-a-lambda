@@ -4,13 +4,13 @@
 -- and define their state in terms of that. They can remember what
 -- happened (see Yampa's Arrow combinators, which hide continuations),
 -- change their behaviour (see switches in Yampa).
-module ObjectSF where
+module Game.ObjectSF where
 
 import FRP.Yampa
 import FRP.Yampa.Switches
 
-import Objects
-import Input
+import Game.Objects
+import Game.Input
 
 type AliveObject = ListSF ObjectInput Object
 

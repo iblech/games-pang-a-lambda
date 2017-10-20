@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- | Game objects and collisions.
-module Objects where
+module Game.Objects where
 
 import Control.Arrow ((***))
 import Data.Maybe (listToMaybe)
@@ -13,7 +13,7 @@ import           Physics.TwoDimensions.Dimensions
 import           Physics.TwoDimensions.PhysicalObjects
 import           Physics.TwoDimensions.Shapes
 
-import Constants
+import Game.Constants
 
 type Collision  = C.Collision  (ObjectName, ObjectKind)
 type Collisions = C.Collisions (ObjectName, ObjectKind)

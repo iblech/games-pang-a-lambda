@@ -83,7 +83,7 @@ executable pang-a-lambda-physics
                  Game
                  GameState
                  Input
-                 Objects
+                 Game.Objects
                  ObjectSF
                  Resources
 
@@ -151,15 +151,15 @@ executable pang-a-lambda-splitballs
     hs-source-dirs: Experiments/splitballs/
     other-modules:
                    -- Game specific
-                   Constants
-                   Debug
-                   Display
-                   Game
-                   GameState
-                   Input
-                   Objects
-                   ObjectSF
-                   Resources
+                   Game.Constants
+                   Game.Debug
+                   Game.Display
+                   Game.Gameplay
+                   Game.GameState
+                   Game.Input
+                   Game.Objects
+                   Game.ObjectSF
+                   Game.Resources
 
                    -- General modules
                    Control.Extra.Monad
@@ -195,20 +195,20 @@ executable pang-a-lambda
     ghc-options: -Wall
     other-modules:
                    -- Game specific
-                   Constants
-                   Debug
-                   Display
-                   Game
-                   GameState
+                   Game.Constants
+                   Game.Debug
+                   Game.Display
+                   Game.GamePlay
+                   Game.GameState
                    Game.Time
-                   Input
-                   Objects
-                   Objects.Walls
-                   Objects.Player
-                   Objects.Blocks
-                   Objects.Balls
-                   ObjectSF
-                   Resources
+                   Game.Input
+                   Game.Objects
+                   Game.Objects.Walls
+                   Game.Objects.Player
+                   Game.Objects.Blocks
+                   Game.Objects.Balls
+                   Game.ObjectSF
+                   Game.Resources
 
                    -- General modules
                    Control.Extra.Monad

@@ -1,4 +1,4 @@
-module Constants where
+module Game.Constants where
 
 import Data.Word
 import Graphics.UI.SDL as SDL

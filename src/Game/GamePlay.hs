@@ -32,7 +32,7 @@
 -- You may want to read the basic definition of 'GameState', 'Controller' and
 -- 'ObjectSF' before you attempt to go through this module.
 --
-module Game
+module Game.GamePlay
   -- (wholeGame)
   where
 
@@ -45,16 +45,16 @@ import FRP.Yampa.Switches
 import Physics.TwoDimensions.GameCollisions
 
 -- Internal iports
-import Constants
-import GameState
+import Game.Constants
+import Game.GameState
 import Game.Time
-import Input
-import Objects
-import ObjectSF
-import Objects.Walls
-import Objects.Player
-import Objects.Balls
-import Objects.Blocks
+import Game.Input
+import Game.Objects
+import Game.ObjectSF
+import Game.Objects.Walls
+import Game.Objects.Player
+import Game.Objects.Balls
+import Game.Objects.Blocks
 
 -- * General state transitions
 
@@ -188,14 +188,14 @@ gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlayInternal objs)
 -- The second value in the accumulator is the energy left.
 
 gamePlayInternal
-  :: [AliveObject]                                    -- ^ Initial game objects
-  ->  SF (Controller,      (Objects.Collisions, Int))
-         ((Objects, Time), (Objects.Collisions, Int)) -- ^ Input x collisions
-                                                      --         x energy
-                                                      --   ~> Objects
-                                                      --         x time left
-                                                      --         x collisions
-                                                      --         x energy
+  :: [AliveObject]                                         -- ^ Initial game objects
+  ->  SF (Controller,      (Game.Objects.Collisions, Int))
+         ((Objects, Time), (Game.Objects.Collisions, Int)) -- ^ Input x collisions
+                                                           --         x energy
+                                                           --   ~> Objects
+                                                           --         x time left
+                                                           --         x collisions
+                                                           --         x energy
      
 
 gamePlayInternal objs = 
