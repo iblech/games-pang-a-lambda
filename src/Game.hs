@@ -405,12 +405,17 @@ playerGun = singleShotGun
 -- | Gun that can be fired once until the bullet hits the wall or a ball, and
 --   then can be fired again.
 singleShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
-singleShotGun name = revSwitch (constant [] &&& firedGun name)
+singleShotGun name = revSwitch (constant [] &&& gunFired name)
                                (\fireLSF -> blockedGun name fireLSF)
 
--- | Gun that has been fired.
-firedGun :: ObjectName -> SF (ObjectInput, Pos2D) (Event (AliveObject))
-firedGun name = proc (i, ppos) -> do
+-- | Gun that can be fired multiple times.
+multiShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
+multiShotGun name = eventToList ^<< gunFired name
+
+-- | Possible event carrying a projectile, triggered when the
+--   gun has been fired.
+gunFired :: ObjectName -> SF (ObjectInput, Pos2D) (Event AliveObject)
+gunFired name = proc (i, ppos) -> do
   -- Fire!!
   newF1  <- edge -< controllerClick (userInput i)
   uniqId <- (\t -> "bullet" ++ name ++ show t) ^<< time -< ()
@@ -428,10 +433,6 @@ blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& bulletDead fsf)
       (_, b, _) <- listSF fsf -< oi
       justDied  <- edge       -< b
       returnA -< justDied
-
--- | Gun that can be fired multiple times.
-multiShotGun :: ObjectName -> SF (ObjectInput, Pos2D) [AliveObject]
-multiShotGun name = eventToList ^<< firedGun name
 
 -- | Fire \/ arrows \/ bullets \/ projectiles. If the third argument is
 --   'False', they die when they hit the top of the screen. If the third
