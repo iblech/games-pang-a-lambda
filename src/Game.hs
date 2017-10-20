@@ -79,11 +79,11 @@ wholeGame = forgetPast $
 
 -- * Game over
 
--- | Detect the death of a player by searching for it in the scene (SF).
+-- | Detect the player in the game state is dead (SF).
 playerDead :: SF GameState (Event ())
 playerDead = playerDead' ^>> edge
 
--- | Detect the death of a player by searching for it in the scene.
+-- | True if the player in the game state is dead (no lives left).
 playerDead' :: GameState -> Bool
 playerDead' gs = gamePlaying && dead
  where
@@ -126,9 +126,11 @@ playLevel n =  playLevel' n
   -- g       <- playLevel' n -< c
   -- returnA -< (g, take, restore)
 
+-- | Play one level indefinitely (it never ends or restarts).
 playLevel' :: Int -> SF Controller GameState
-playLevel' n =  timeTransformSF timeProgression $ limitHistory 5 $ playLevel'' n
+playLevel' n =  timeTransformSF timeProgressionReverse $ limitHistory 5 $ playLevel'' n
 
+-- | Play one level indefinitely (it never ends or restarts).
 playLevel'' :: Int -> SF Controller GameState
 playLevel'' n = gamePlay (initialObjects n) >>^ composeGameState
   where
@@ -148,14 +150,16 @@ outOfEnemies = arr outOfEnemies'
 
 -- * Time manipulation
 
--- Another option is slowDown
-timeProgression :: SF Controller (DTime -> DTime)
-timeProgression = proc (c) -> do
+-- | Time transformation SF that allows time to be reversed.
+timeProgressionReverse :: SF Controller (DTime -> DTime)
+timeProgressionReverse = proc (c) -> do
+  -- NOTE: Another option is slowDown
   let rev  = if controllerReverse c then ((-1)*) else id
   returnA -< rev
 
-slowDown :: SF Controller (DTime -> DTime)
-slowDown = proc (c) -> do
+-- | Time transformation SF that slows down time upon request.
+timeProgressionSlowDown :: SF Controller (DTime -> DTime)
+timeProgressionSlowDown = proc (c) -> do
   rec let slow = controllerReverse c
           unit = if | power' >= 0 && slow -> (-1)
                     | power' >= maxPower  -> 0
@@ -168,15 +172,17 @@ slowDown = proc (c) -> do
    maxPower :: Double
    maxPower = 5
 
-timeProgression' :: SF ObjectInput (DTime -> DTime)
-timeProgression' = arr userInput >>> stopClock
+-- | Time transformation function that can halt time for an object.
+timeProgressionHalt :: SF ObjectInput (DTime -> DTime)
+timeProgressionHalt = userInput ^>> stopClock
 
+-- | Time transformation function that can halt time upon user request.
 stopClock :: SF Controller (DTime -> DTime)
-stopClock = switch (arr (controllerHalt >>> haltOutput))
-                   (\_ -> switch (constant (const 0) &&& after 25 ())
-                                 (\_ -> stopClock))
+stopClock =   arr halt
+          ||> constant (const 0) &&& after 25 ()
+          ||> stopClock
  where
-   haltOutput h = if h then (const 0, Event ()) else (id, noEvent)
+   halt c = if controllerHalt c then (const 0, Event ()) else (id, noEvent)
 
 -- ** Game with partial state information
 
@@ -184,39 +190,15 @@ stopClock = switch (arr (controllerHalt >>> haltOutput))
 -- from those objects at all times, notifying any time the ball hits the floor,
 -- and and of any additional points made.
 --
--- This works as a game loop with a post-processing step. It uses
--- a well-defined initial accumulator and a traditional feedback
--- loop.
+-- This works as a game loop with a post-processing step. It uses a
+-- well-defined initial accumulator and a traditional feedback loop.
 --
 -- The internal accumulator holds the last known collisions (discarded at every
 -- iteration).
 
-playerEnergy'' :: Objects -> Int
-playerEnergy'' objs = maybe 0 playerEnergy (findPlayer objs)
-
-gameTimeSF = proc (_, (_, e)) -> do
-   dt <- deltas -< ()
-   let dt' = if e < 0 && dt < 0 then (-dt) else dt
-   returnA -< dt'
-
 gamePlay :: [ListSF ObjectInput Object] -> SF Controller (Objects, Time)
 gamePlay objs = loopPre ([], 0) $ clocked gameTimeSF (gamePlay' objs)
-  -- Process physical movement and detect new collisions
-     -- -- Adapt Input
-     -- let oi = ObjectInput input cs
 
-     -- -- Step
-     -- -- Each obj processes its movement forward
-     -- ol  <- dlSwitch objs -< oi
-     -- let cs' = detectCollisions ol
-
-     -- let energyLeft = playerEnergy'' ol
-
-     -- -- Output
-     -- tLeft   <- time -< ()
-     -- returnA -< ((ol, tLeft), (cs', energyLeft))
-
--- gamePlay' :: SF (Controller, (Collisions, Int)) ((Objects, Time), (Collisions, Int))
 gamePlay' :: [ListSF ObjectInput Object]
           -> SF (Controller, (Objects.Collisions, Int))
                 (([Object], Time), (Collisions.Collisions String, Int))
@@ -230,11 +212,19 @@ gamePlay' objs =
      ol  <- dlSwitch objs -< oi
      let cs' = detectCollisions ol
 
-     let eleft = playerEnergy'' ol
+     let eleft = playerEnergyObjs ol
 
      -- Output
      tLeft   <- time -< ()
      returnA -< ((ol, tLeft), (cs', eleft))
+
+
+-- | Generate time deltas, taking time direction and reversing power into
+--   account.
+gameTimeSF = proc (_, (_, e)) -> do
+  dt <- deltas -< ()
+  let dt' = if e < 0 && dt < 0 then (-dt) else dt
+  returnA -< dt'
 
 -- * Game objects
 --
@@ -284,33 +274,41 @@ objEnemies n =
   [ splittingBall ballBig "ballEnemy1" (600, 300) (360, -350) ]
 
 -- ** Blocks
---
+
 -- Blocks are horizontal rectangles that /every/ other element collides
 -- with. They need not be static.
 
 -- | List of blocks depending on the level.
 blocks :: Int -> [ListSF ObjectInput Object]
-blocks 0 = [ objBlock    "block1" (200, 55)  (100, 57)               ]
-blocks 1 = [ movingBlock "block1" (400, 200) (100, 57) 200 10   0  0 ]
-blocks 2 = [ movingBlock "block1" (400, 200) (100, 57) 0    0 100 10 ]
-blocks 3 = [ movingBlock "block1" (324, 200) (100, 57) 200  6   0  0
-           , movingBlock "block2" (700, 200) (100, 57) 200  6 100 10
+blocks 0 = [ staticBlock      "block1" (200, 55)  (100, 57)               ]
+blocks 1 = [ oscillatingBlock "block1" (400, 200) (100, 57) 200 10   0  0 ]
+blocks 2 = [ oscillatingBlock "block1" (400, 200) (100, 57) 0    0 100 10 ]
+blocks 3 = [ oscillatingBlock "block1" (324, 200) (100, 57) 200  6   0  0
+           , oscillatingBlock "block2" (700, 200) (100, 57) 200  6 100 10
            ]
-blocks n = [ objBlock    "block1" (200, 200) (100, 57) ]
+blocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
--- *** Moving blocks
+-- | Static block builder, given a name, a size and its base
+-- position.
+staticBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
+staticBlock name pos size = ListSF $ timeTransformSF timeProgressionHalt $ constant
+  (Object { objectName           = name
+          , objectKind           = Block size
+          , objectPos            = pos
+          , objectVel            = (0,0)
+          , canCauseCollisions   = False
+          , collisionEnergy      = 0
+          }, False, [])
 
--- | A moving block with an initial position and size, and horizontal and
--- vertical amplitude and periods. If an amplitude is /not/ zero, the
--- block moves along that dimension using a periodic oscillator
--- (see the SF 'osci').
-
-movingBlock :: String
-            -> Pos2D -> Size2D  -- Geometry
-            -> Double -> Double -- Horizontal oscillation amplitude and period
-            -> Double -> Double -- Vertical   oscillation amplitude and period
-            -> ListSF ObjectInput Object
-movingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
+-- | Moving block with an initial position and size, and horizontal and
+-- vertical amplitude and periods. If an amplitude is /not/ zero, the block
+-- moves along that dimension using a periodic oscillator (see 'osci').
+oscillatingBlock :: String
+                 -> Pos2D -> Size2D  -- Geometry
+                 -> Double -> Double -- Horizontal oscillation amplitude and period
+                 -> Double -> Double -- Vertical   oscillation amplitude and period
+                 -> ListSF ObjectInput Object
+oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
   px' <- vx -< px
   py' <- vy -< py
   returnA -< (Object { objectName           = name
@@ -333,64 +331,10 @@ movingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
    vy :: SF Double Double
    vy = if vAmp /= 0 then (py +) ^<< osci vAmp vPeriod else identity
 
--- | Generic block builder, given a name, a size and its base
--- position.
-objBlock :: ObjectName -> Pos2D -> Size2D -> ListSF ObjectInput Object
-objBlock name pos size = ListSF $ timeTransformSF timeProgression' $ constant
-  (Object { objectName           = name
-          , objectKind           = Block size
-          , objectPos            = pos
-          , objectVel            = (0,0)
-          , canCauseCollisions   = False
-          , collisionEnergy      = 0
-          }, False, [])
-
--- ** Enemy sizes
-ballGiant  = ballWidth
-ballBig    = ballGiant  / 2
-ballMedium = ballBig    / 2
-ballSmall  = ballMedium / 2
-
 -- ** Player
 objPlayers :: [ListSF ObjectInput Object]
 objPlayers =
   [ player initialLives playerName (320, 20) True ]
-
--- ** Guns
-
-gun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-gun name = normalGun name
-  -- To switch between different kinds of guns
-  -- gun name = switch
-  --   (normalGun name &&& after 5 ())
-  --   (\_ -> multipleGun name)
-
--- *** Normal gun, fires one shot at a time
-
-normalGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-normalGun name = revSwitch (constant [] &&& gunFired name)
-                           (\fireLSF -> blockedGun name fireLSF)
-
-blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& fireDead fsf)
-                             (\_ -> normalGun name)
-
-fireDead fsf = proc (oi, _) -> do
-  (_, b, _) <- listSF fsf -< oi
-  justDied <- edge -< b
-  returnA -< justDied
-
-gunFired :: String -> SF (ObjectInput, Pos2D) (Event (ListSF ObjectInput Object))
-gunFired name = proc (i, ppos) -> do
-  -- Fire!!
-  newF1  <- edge -< controllerClick (userInput i)
-  uniqId <- (\t -> "fire" ++ name ++ show t) ^<< time -< ()
-
-  let newFire = fire uniqId (fst ppos + playerWidth / 2, 0) False
-  returnA -< newF1 `tag` newFire
-
--- *** Normal gun, fires one shot at a time
-multipleGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
-multipleGun name = eventToList ^<< gunFired name
 
 player :: Int -> String -> Pos2D -> Bool -> ListSF ObjectInput Object
 player lives name p0 vul = ListSF $ proc i -> do
@@ -403,7 +347,7 @@ player lives name p0 vul = ListSF $ proc i -> do
   -- let newF1Arrows = [ fire uniqId (fst ppos, 0) False
   --                   | newF1 ]
 
-  newF1Arrows <- gun name -< (i, ppos)
+  newF1Arrows <- playerGun name -< (i, ppos)
 
   -- Dead?
   let hitByBall = not $ null
@@ -420,8 +364,9 @@ player lives name p0 vul = ListSF $ proc i -> do
                     | dead  && lives > 0 ]
 
   dt <- deltas -< ()
+
   energy <- loopPre 5 (arr (dup . max 0 . min 5 . sumTime)) -< dt
-  --  max 0 (min 5 (round (fromIntegral (playerEnergy'' ol) + dt)))
+  --  max 0 (min 5 (round (fromIntegral (playerEnergyObjs ol) + dt)))
 
   -- Final player
   returnA -< (Object { objectName           = name
@@ -434,8 +379,12 @@ player lives name p0 vul = ListSF $ proc i -> do
              , dead
              , newF1Arrows ++ newPlayer)
 
-sumTime :: (DTime, DTime) -> DTime
-sumTime = uncurry (+)
+  where 
+    sumTime :: (DTime, DTime) -> DTime
+    sumTime = uncurry (+)
+
+playerName :: String
+playerName = "player"
 
 playerState :: Controller -> PlayerState
 playerState controller =
@@ -444,9 +393,6 @@ playerState controller =
     (True, _, _)    -> PlayerLeft
     (_,    True, _) -> PlayerRight
     _               -> PlayerStand
-
-playerName :: String
-playerName = "player"
 
 playerProgress :: String -> Pos2D -> SF ObjectInput (Pos2D, Vel2D)
 playerProgress pid p0 = proc i -> do
@@ -490,23 +436,64 @@ playerProgress pid p0 = proc i -> do
    stateChanged :: PlayerState -> SF Controller (Event PlayerState)
    stateChanged oldState = arr playerState >>> ifDiff oldState
 
+playerGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+playerGun = normalGun
+  -- To switch between different kinds of guns
+  -- playerGun name = switch
+  --   (normalGun name &&& after 5 ())
+  --   (\_ -> multipleGun name)
+
+-- ** Guns
+
+-- *** Normal gun, fires one shot at a time
+
+-- | Gun that can be fired once until the bullet hits the wall or a ball, and
+--   then can be fired again.
+normalGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+normalGun name = revSwitch (constant [] &&& gunFired name)
+                           (\fireLSF -> blockedGun name fireLSF)
+
+-- | Gun that has been fired.
+gunFired :: String -> SF (ObjectInput, Pos2D) (Event (ListSF ObjectInput Object))
+gunFired name = proc (i, ppos) -> do
+  -- Fire!!
+  newF1  <- edge -< controllerClick (userInput i)
+  uniqId <- (\t -> "bullet" ++ name ++ show t) ^<< time -< ()
+
+  let newFire = bullet uniqId (fst ppos + playerWidth / 2, 0) False
+  returnA -< newF1 `tag` newFire
+
+-- | Gun that cannot be fired until the current bullet hits
+--   the ceiling or a ball.
+blockedGun name fsf = revSwitch (([fsf] --> constant []) &&& bulletDead fsf)
+                             (\_ -> normalGun name)
+  where
+    bulletDead fsf = proc (oi, _) -> do
+      (_, b, _) <- listSF fsf -< oi
+      justDied <- edge -< b
+      returnA -< justDied
+
+-- | Gun that can be fired multiple times.
+multipleGun :: String -> SF (ObjectInput, Pos2D) [ListSF ObjectInput Object]
+multipleGun name = eventToList ^<< gunFired name
+
 -- *** Fire \/ arrows \/ bullets \/ projectiles
 
--- | This produces bullets that die when they hit the top of the screen.
--- There's sticky bullets and normal bullets. Sticky bullets get stuck for a
--- while before they die.
-fire :: String -> Pos2D -> Bool -> ListSF ObjectInput Object
-fire name (x0, y0) sticky = ListSF $ proc i -> do
+-- | Bullets. If the third argument is False, they die when they hit the top of
+--   the screen. If the third argument is true, they stuck for a while before
+--   they die.
+bullet :: String -> Pos2D -> Bool -> ListSF ObjectInput Object
+bullet name (x0, y0) sticky = ListSF $ proc i -> do
 
   -- Calculate arrow tip
-  yT <- (y0+) ^<< integral -< fireSpeed
+  yT <- (y0+) ^<< integral -< bulletSpeed
   let y = min height yT
 
-  -- Delay death if the fire is "sticky"
-  hit <- revSwitch (never &&& fireHitCeiling) (\_ -> stickyDeath sticky) -< y
+  -- Delay death if the bullet is "sticky"
+  hit <- revSwitch (never &&& bulletHitCeiling) (\_ -> stickyDeath sticky) -< y
 
-  hitBall  <- arr (fireCollidedWithBall  name) -< collisions i
-  hitBlock <- arr (fireCollidedWithBlock name) -< collisions i
+  hitBall  <- arr (bulletCollidedWithBall  name) -< collisions i
+  hitBlock <- arr (bulletCollidedWithBlock name) -< collisions i
 
   let dead = isEvent hit || hitBall || hitBlock
 
@@ -522,24 +509,25 @@ fire name (x0, y0) sticky = ListSF $ proc i -> do
 
  where
 
-   fireHitCeiling = arr (>= height) >>> edge
-   fireCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
-   fireCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
+   bulletHitCeiling = arr (>= height) >>> edge
+   bulletCollidedWithBall  bid = not . null . collisionMask bid ("ball" `isPrefixOf`)
+   bulletCollidedWithBlock bid = not . null . collisionMask bid ("block" `isPrefixOf`)
 
-stickyDeath :: Bool -> SF a (Event ())
-stickyDeath True  = after 30 ()
-stickyDeath False = constant (Event ())
+   stickyDeath :: Bool -> SF a (Event ())
+   stickyDeath True  = after 30 ()
+   stickyDeath False = constant (Event ())
 
--- *** Ball
+-- ** Balls
 
+-- | A ball that splits in two when hit unless it is too small.
 splittingBall :: Double -> String -> Pos2D -> Vel2D -> ListSF ObjectInput Object
-splittingBall size bid p0 v0 = ListSF $ timeTransformSF timeProgression' $ proc i -> do
+splittingBall size bid p0 v0 = ListSF $ timeTransformSF timeProgressionHalt $ proc i -> do
 
   -- Default, just bouncing behaviour
   bo <- bouncingBall size bid p0 v0 -< i
 
   -- Hit fire? If so, it should split
-  click <- edge <<^ ballCollidedWithFire bid -< collisions i
+  click <- edge <<^ ballIsHit bid -< collisions i
   let shouldSplit = isEvent click
 
   -- We need two unique IDs so that collisions work
@@ -570,19 +558,19 @@ splittingBall size bid p0 v0 = ListSF $ timeTransformSF timeProgression' $ proc 
 
   returnA -< (bo, dead, offspring)
 
-ballCollidedWithFire :: ObjectName -> Objects.Collisions -> Bool
-ballCollidedWithFire bid = not . null . collisionMask bid ("fire" `isPrefixOf`)
+-- | Determine if a given fall has been hit by a bullet.
+ballIsHit :: ObjectName -> Objects.Collisions -> Bool
+ballIsHit bid = not . null . collisionMask bid ("bullet" `isPrefixOf`)
 
--- A bouncing ball moves freely until there is a collision, then bounces and
--- goes on and on.
+-- | A bouncing ball that moves freely until there is a collision, then bounces
+-- and goes on and on.
 --
--- This SF needs an initial position and velocity. Every time
--- there is a bounce, it takes a snapshot of the point of
--- collision and corrected velocity, and starts again.
+-- This SF needs an initial position and velocity. Every time there is a
+-- bounce, it takes a snapshot of the point of collision and corrected
+-- velocity, and starts again.
 --
 bouncingBall :: Double -> String -> Pos2D -> Vel2D -> ObjectSF
 bouncingBall size bid p0 v0 = repeatRevSF (progressAndBounce size bid) (p0, v0)
-
 
 -- | Calculate the future tentative position, and bounce if necessary. Pass on
 -- snapshot of ball position and velocity if bouncing.
@@ -689,3 +677,14 @@ freeBall size name p0 v0 = proc (ObjectInput ci cs) -> do
 eventToList :: Event a -> [a]
 eventToList NoEvent   = []
 eventToList (Event a) = [a]
+
+-- | Safe function to get the energy of the player from the game state.
+playerEnergyObjs :: Objects -> Int
+playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
+
+-- | Execute an sf until it fires an event, and then execute another SF.
+
+-- TODO: Is there a better abstraction to write this?
+-- Maybe use tasks?
+infixr 2 ||>
+(||>) sf sfC = switch sf (const sfC)

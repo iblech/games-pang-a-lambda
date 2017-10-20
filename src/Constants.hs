@@ -33,6 +33,12 @@ ballWidth, ballHeight :: Double
 ballWidth  = 100
 ballHeight = 100
 
+-- ** Enemy sizes
+ballGiant  = ballWidth
+ballBig    = ballGiant  / 2
+ballMedium = ballBig    / 2
+ballSmall  = ballMedium / 2
+
 ballMargin :: Double
 ballMargin = 3
 
@@ -55,8 +61,8 @@ playerWidth = 65
 playerHeight :: Double
 playerHeight = 92
 
-fireColor :: Word32
-fireColor = 0xFFDDC34F
+bulletColor :: Word32
+bulletColor = 0xFFDDC34F
 
 playerRightColor :: Word32
 playerRightColor = 0xFFD2D454
@@ -85,8 +91,8 @@ blockColor = 0xFF85AABC
 playerSpeed :: Double
 playerSpeed = 200
 
-fireSpeed :: Double
-fireSpeed = 400
+bulletSpeed :: Double
+bulletSpeed = 400
 
 initialLives :: Int
 initialLives = 5
