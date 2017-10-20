@@ -11,22 +11,21 @@
 -- The output is defined in 'GameState', and consists of basic information
 -- (points, current level, etc.) and a universe of objects.
 --
--- Objects are represented as Signal Functions as well ('ObjectSF'). This
--- allows them to react to user input and change with time.  Each object is
--- responsible for itself, but it cannot affect others: objects can watch
--- others, depend on others and react to them, but they cannot /send a
--- message/ or eliminate other objects. However, if you would like to
--- dynamically introduce new elements in the game (for instance, falling
--- powerups that the player must collect before they hit the ground) then it
--- might be a good idea to allow objects not only to /kill themselves/ but
--- also to spawn new object.
+-- Objects are represented as Signal Functions as well ('ObjectSF'). In this
+-- game we are introducing a novel construct, named 'AliveObject' in this
+-- a particular instance of a 'ListSF'. A 'ListSF' is a signal function that
+-- can die, or can produce more signal functions of the same type.
+-- 
+-- Each object is responsible for itself, but it cannot affect others:
+-- objects can watch others, depend on others and react to them, but they
+-- cannot /send a message/ or eliminate other objects. 
 --
 -- This module contains two sections:
 --
 --   - A collection of gameplay SFs, which control the core game loop, carry
---   out collision detection, , etc.
+--   out collision detection, etc.
 --
---   - One SF per game object. These define the elements in the game universe,
+--   - SF for each game object. These define the elements in the game universe,
 --   which can observe other elements, depend on user input, on previous
 --   collisions, etc.
 --
@@ -103,15 +102,9 @@ playerDead = playerDead' ^>> edge
 
 -- | Show loading screen for 2 seconds, then plays the game.
 level :: Int -> SF Controller GameState
-level n = switch
-  (levelLoading n &&& after 2 ()) -- show loading screen for 2 seconds
-  (\_ -> levelCore n)
-
--- | Straight to play level until finished, then go on to next level.
-levelCore :: Int -> SF Controller GameState
-levelCore n = switch
-    (playLevel n >>> (identity &&& arr outOfEnemies))
-    (\_ -> level (n + 1))
+level n =   levelLoading n >? after 2 () -- show loading screen for 2 seconds
+        ||> levelCore    n >? arr outOfEnemies
+        ||> level (n+1)
   where
     -- | Detect when there are no more enemies in the scene.
     outOfEnemies :: GameState -> (Event GameState)
@@ -123,20 +116,20 @@ levelLoading :: Int -> SF Controller GameState
 levelLoading n = constant (GameState [] (GameInfo 0 n GameLoading))
 
 -- | Play one level indefinitely (it never ends or restarts).
-playLevel :: Int -> SF Controller GameState
-playLevel =
-  timeTransformSF timeProgressionReverse . limitHistory 5 . playLevelForward
+levelCore :: Int -> SF Controller GameState
+levelCore =
+  timeTransformSF timeProgressionReverse . limitHistory 5 . levelCoreForward
 
   -- checkpoint $ proc (c) -> do
   -- take    <- edge <<^ controllerCheckPointSave -< c
   -- restore <- edge <<^ controllerCheckPointRestore -< c
-  -- g       <- playLevel' n -< c
+  -- g       <- levelCore' n -< c
   -- returnA -< (g, take, restore)
 
 -- | Play one level indefinitely (it never ends or restarts), in forward time
 --   direction.
-playLevelForward :: Int -> SF Controller GameState
-playLevelForward n = gamePlay (initialObjects n) >>^ composeGameState
+levelCoreForward :: Int -> SF Controller GameState
+levelCoreForward n = gamePlay (initialObjects n) >>^ composeGameState
   where
     -- Compose GameState output from 'gamePlay's output
     composeGameState :: (Objects, Time) -> GameState
@@ -699,6 +692,8 @@ eventToList (Event a) = [a]
 -- Maybe use tasks?
 infixr 2 ||>
 (||>) sf sfC = switch sf (const sfC)
+
+(>?) sf0 sf = sf0 >>> (identity &&& sf)
 
 -- ** Other aux
 
