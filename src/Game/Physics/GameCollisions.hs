@@ -18,7 +18,8 @@ import           Data.Maybe
 import           Physics.TwoDimensions.Collisions
 import qualified Physics.TwoDimensions.Collisions      as C
 import           Physics.TwoDimensions.PhysicalObjects
-import           Physics.TwoDimensions.Shapes
+
+import           Game.Physics.Shapes
 
 -- | Given a list of objects, it detects all the collisions between them.
 --

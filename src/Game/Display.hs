@@ -17,7 +17,7 @@ import Game.Constants
 import Game.GameState
 import Game.Objects
 import Game.Resources
-import Physics.TwoDimensions.Shapes
+import Game.Physics.Shapes
 
 -- | Ad-hoc resource loading
 -- This function is ad-hoc in two senses: first, because it

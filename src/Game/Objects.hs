@@ -11,9 +11,9 @@ import FRP.Yampa.VectorSpace
 import qualified Physics.TwoDimensions.Collisions      as C
 import           Physics.TwoDimensions.Dimensions
 import           Physics.TwoDimensions.PhysicalObjects
-import           Physics.TwoDimensions.Shapes
 
 import Game.Constants
+import Game.Physics.Shapes
 
 type Collision  = C.Collision  (ObjectName, ObjectKind)
 type Collisions = C.Collisions (ObjectName, ObjectKind)

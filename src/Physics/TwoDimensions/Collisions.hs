@@ -10,9 +10,9 @@ import Data.Maybe
 import FRP.Yampa.VectorSpace
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects
-import Physics.TwoDimensions.Shapes
-
 import Physics.Collisions
+
+import Game.Physics.Shapes
 
 -- * Collision points
 data CollisionPoint = CollisionSide  Side

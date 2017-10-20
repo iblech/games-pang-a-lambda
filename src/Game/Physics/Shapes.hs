@@ -2,7 +2,7 @@
 -- overlaps only, the actual physics movement is carried out
 -- in Yampa itself, as it is very simple using integrals and
 -- derivatives.
-module Physics.TwoDimensions.Shapes where
+module Game.Physics.Shapes where
 
 import FRP.Yampa.VectorSpace
 import Physics.TwoDimensions.Dimensions
