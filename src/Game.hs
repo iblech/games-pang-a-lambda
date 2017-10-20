@@ -406,8 +406,8 @@ playerProgress pid p0 = proc i -> do
       onlyBlocks (Collision cdata) = any (playerCollisionElem . fst) cdata
 
       playerCollisionElem s = isBlockId s || isWallId s
-      isBlockId = ((== Block) . snd)
-      isWallId  = ((== Side) . snd)
+      isBlockId = collisionObjectKind Block
+      isWallId  = collisionObjectKind Side
 
   let ev = changedVelocity (pid, Player) collisionsWithBlocks
       vc = fromMaybe v ev
@@ -617,11 +617,11 @@ ballBounce' bid = proc (ObjectInput ci cs, o) -> do
   -- detect an event directly after
   -- ev <- edgeJust -< changedVelocity "ball" cs
   let collisionsWithoutBalls = filter (not . allBalls) cs
-      allBalls (Collision cdata) = all ((== Ball) . snd . fst) cdata
+      allBalls (Collision cdata) = all (collisionObjectKind Ball . fst) cdata
 
   let collisionsWithoutPlayer = filter (not . anyPlayer)
                                  collisionsWithoutBalls
-      anyPlayer (Collision cdata) = any ((== Player) . snd . fst) cdata
+      anyPlayer (Collision cdata) = any (collisionObjectKind Player . fst) cdata
 
   let ev = maybeToEvent (changedVelocity (bid, Ball) collisionsWithoutPlayer)
   returnA -< fmap (\v -> (objectPos o, v)) ev
@@ -694,5 +694,6 @@ playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
 infixr 2 ||>
 (||>) sf sfC = switch sf (const sfC)
 
+-- | Check if collision is of given type.
 collisionObjectKind :: ObjectKind -> (ObjectName, ObjectKind) -> Bool
 collisionObjectKind ok1 (_, ok2) = ok1 == ok2
