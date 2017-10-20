@@ -15,6 +15,7 @@ import           Data.Foldable
 import           Prelude   hiding (concatMap)
 import           Data.List hiding (concatMap)
 import           Data.Maybe
+import           Physics.TwoDimensions.Dimensions
 import           Physics.TwoDimensions.PhysicalObjects as C
 
 -- | Given a list of objects, it detects all the collisions between them.
@@ -57,3 +58,58 @@ detectCollisions''' :: (Eq n, PhysicalObject o n s) => o -> o -> [Collision n]
 detectCollisions''' m o
  | physObjectId m == physObjectId o = []    -- Same object -> no collision
  | otherwise                        = maybeToList (physDetectCollision m o)
+
+-- | Return the new velocity as changed by the collection of collisions.
+--
+-- HN 2014-09-07: New interface to collision detection.
+--
+-- The assumption is that collision detection happens globally and that the
+-- changed velocity is figured out for each object involved in a collision
+-- based on the properties of all objects involved in any specific interaction.
+-- That may not be how it works now, but the interface means it could work
+-- that way. Even more physical might be to figure out the impulsive force
+-- acting on each object.
+--
+-- However, the whole collision infrastructure should be revisited.
+--
+-- - Statefulness ("edge") might make it more robust.
+--
+-- - Think through how collision events are going to be communicated
+--   to the objects themselves. Maybe an input event is the natural
+--   thing to do. Except then we have to be careful to avoid switching
+--   again immediately after one switch.
+--
+-- - Should try to avoid n^2 checks. Maybe some kind of quad-trees?
+--   Maybe spawning a stateful collision detector when two objects are
+--   getting close? Cf. the old tail-gating approach.
+-- - Maybe a collision should also carry the identity of the object
+--   one collieded with to facilitate impl. of "inCollisionWith".
+--
+changedVelocity :: Eq n => n -> Collisions n -> Maybe Vel2D
+changedVelocity name cs =
+  case concatMap (filter ((== name) . fst) . collisionData) cs of
+    []          -> Nothing
+    (_, v') : _ -> Just v'
+    -- vs       -> Just (foldl (^+^) (0,0) (map snd vs))
+
+-- | True if the velocity of the object has been changed by any collision.
+inCollision :: Eq n => n -> Collisions n -> Bool
+inCollision name cs = isJust (changedVelocity name cs)
+
+-- | True if the two objects are colliding with one another.
+inCollisionWith :: Eq n => n -> n -> Collisions n -> Bool
+inCollisionWith nm1 nm2 cs = any both cs
+  where
+    both (Collision nmvs) =
+      any ((== nm1) . fst) nmvs && any ((== nm2) . fst) nmvs
+
+-- * Apply an ID-based collision mask
+collisionMask :: Eq id
+              => id -> (id -> Bool) -> Collisions id -> Collisions id
+collisionMask cId mask = onCollisions ( filter (any (mask . fst))
+                                      . filter (any ((== cId).fst))
+                                      )
+
+ where onCollisions :: ([[(id, Vel2D)]] -> [[(id, Vel2D)]])
+                    -> Collisions id    -> Collisions id
+       onCollisions f = map Collision . f . map collisionData

@@ -25,6 +25,7 @@ import FRP.Yampa.Switches
 
 -- General-purpose internal imports
 import Data.Extra.VectorSpace
+import Physics.CollisionEngine          
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects
 
@@ -33,7 +34,6 @@ import Game.Constants
 import Game.Input
 import Game.Objects
 import Game.ObjectSF
-import Game.Physics.Collisions       as Collisions
 import Game.Time
 
 -- ** Balls

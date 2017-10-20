@@ -26,6 +26,8 @@ import FRP.Yampa.Switches
 
 -- General-purpose internal imports
 import Data.Extra.Ord
+
+import Physics.CollisionEngine
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects as Collisions
 
@@ -34,7 +36,6 @@ import Game.Constants
 import Game.Input
 import Game.Objects
 import Game.ObjectSF
-import Game.Physics.Collisions as Collisions
 
 -- | A player with a given it, lives, position and initial vulnerability.
 player :: ObjectName -> Int -> Pos2D -> Bool -> AliveObject
