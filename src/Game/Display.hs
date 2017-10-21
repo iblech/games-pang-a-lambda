@@ -19,6 +19,29 @@ import Game.Objects
 import Game.Resources
 import Game.Physics.Shapes
 
+-- * Display handling
+
+initializeDisplay :: IO ()
+initializeDisplay =
+   -- Initialise SDL
+  SDL.init [InitEverything]
+
+initGraphs :: IORef Resources -> IO ()
+initGraphs _res = do
+  screen <- SDL.setVideoMode (round width) (round height) 32 [SWSurface]
+  SDL.setCaption gameName ""
+
+  -- Important if we want the keyboard to work right (I don't know
+  -- how to make it work otherwise)
+  SDL.enableUnicode True
+
+  -- Hide mouse
+  SDL.showCursor True
+
+  return ()
+
+-- * Resource handling
+
 -- | Ad-hoc resource loading
 -- This function is ad-hoc in two senses: first, because it
 -- has the paths to the files hard-coded inside. And second,
@@ -93,24 +116,41 @@ loadResources = do
                                   blockImg
                                   backgrounds
 
-initializeDisplay :: IO ()
-initializeDisplay =
-   -- Initialise SDL
-  SDL.init [InitEverything]
+getBallImage :: IORef Resources -> Int -> IO Surface
+getBallImage resRef size = do
+  resources <- readIORef resRef
+  let ballIndex = case size of
+                    100 -> 0
+                    50  -> 1
+                    25  -> 2
+                    _   -> 3
+  let (n, imgs) = (ballImages resources) !! ballIndex
+      n' = if (n `div` 10) >= (length imgs - 1) then 0 else n + 1
+      newImages = updateL (ballImages resources) ballIndex (n', imgs)
+  writeIORef resRef (resources { ballImages = newImages })
+  return (imgs!!(n `div` 10))
 
-initGraphs :: IORef Resources -> IO ()
-initGraphs _res = do
-  screen <- SDL.setVideoMode (round width) (round height) 32 [SWSurface]
-  SDL.setCaption gameName ""
+getPlayerImage :: IORef Resources -> PlayerState -> Bool -> IO Surface
+getPlayerImage resRef state vulnerable = do
+    resources <- readIORef resRef
+    let (n, imgs) = fromJust $ lookup visualState (playerImages resources)
+        n' = if (n `div` 2) >= (length imgs - 1) then 0 else (n+1)
+        updateN o@(s, (n, is)) = if s == visualState then (s, (n', is)) else o
+        newImages = map updateN (playerImages resources)
+    writeIORef resRef (resources { playerImages = newImages })
+    return (imgs!!(n `div` 2))
+  where 
+    visualState = case (state, vulnerable) of
+      (PlayerShooting, True)  -> PlayerVisualShoot
+      (PlayerRight,    True)  -> PlayerVisualRight
+      (PlayerLeft ,    True)  -> PlayerVisualLeft
+      (PlayerStand,    True)  -> PlayerVisualStand
+      (PlayerShooting, False) -> PlayerVisualShoot
+      (PlayerRight,    False) -> PlayerVisualRight
+      (PlayerLeft ,    False) -> PlayerVisualLeft
+      (PlayerStand,    False) -> PlayerVisualHit
 
-  -- Important if we want the keyboard to work right (I don't know
-  -- how to make it work otherwise)
-  SDL.enableUnicode True
-
-  -- Hide mouse
-  SDL.showCursor True
-
-  return ()
+-- * Rendering
 
 render :: IORef Resources -> GameState -> IO()
 render resources shownState = do
@@ -140,7 +180,7 @@ render resources shownState = do
   -- Double buffering
   SDL.flip screen
 
--- * Painting functions
+-- ** Painting functions
 displayInfo :: Surface -> IORef Resources -> GameInfo -> Objects -> IO()
 displayInfo screen resRef over objs = do
   printAlignRight screen resRef
@@ -225,54 +265,9 @@ paintObject screen resRef time object = do
         fillRect screen (Just (Rect x0' y0' dx' dy')) (Pixel bulletColor)
         return ()
 
-getBallImage :: IORef Resources -> Int -> IO Surface
-getBallImage resRef size = do
-  resources <- readIORef resRef
-  let ballIndex = case size of
-                    100 -> 0
-                    50  -> 1
-                    25  -> 2
-                    _   -> 3
-  let (n, imgs) = (ballImages resources) !! ballIndex
-      n' = if (n `div` 10) >= (length imgs - 1) then 0 else n + 1
-      newImages = updateL (ballImages resources) ballIndex (n', imgs)
-  writeIORef resRef (resources { ballImages = newImages })
-  return (imgs!!(n `div` 10))
-
-updateL :: [a] -> Int -> a -> [a]
-updateL []     _ x  = [x]
-updateL (_:as) 0 a  = a : as
-updateL (a:as) n a' = a : updateL as (n-1) a'
-
-getPlayerImage :: IORef Resources -> PlayerState -> Bool -> IO Surface
-getPlayerImage resRef state vulnerable = do
-  let visualState = playerVisualState state vulnerable
-  resources <- readIORef resRef
-  let (n, imgs) = fromJust $ lookup visualState (playerImages resources)
-      n' = if (n `div` 2) >= (length imgs - 1) then 0 else (n+1)
-      updateN o@(s, (n, is)) = if s == visualState then (s, (n', is)) else o
-      newImages = map updateN (playerImages resources)
-  writeIORef resRef (resources { playerImages = newImages })
-  return (imgs!!(n `div` 2))
-
-playerVisualState :: PlayerState -> Bool -> PlayerVisualState
-playerVisualState state vulnerable =
-  case (state, vulnerable) of
-  (PlayerShooting, True)  -> PlayerVisualShoot
-  (PlayerRight,    True)  -> PlayerVisualRight
-  (PlayerLeft ,    True)  -> PlayerVisualLeft
-  (PlayerStand,    True)  -> PlayerVisualStand
-  (PlayerShooting, False) -> PlayerVisualShoot
-  (PlayerRight,    False) -> PlayerVisualRight
-  (PlayerLeft ,    False) -> PlayerVisualLeft
-  (PlayerStand,    False) -> PlayerVisualHit
-
 paintShape :: Surface -> IORef Resources -> Double -> Object -> IO ()
 paintShape screen resources time object =
- paintShape' screen resources time (objShape object)
-
-paintShape' screen resources time shape =
-  case shape of
+  case objShape object of
     Rectangle (px, py) (w,h) -> void $ do
       let x1 = round px
           x2 = round (px + w)
@@ -295,6 +290,32 @@ paintShape' screen resources time shape =
            TopSide    -> drawThickLine screen 0 0 w 0 (Pixel collisionDebugColor) collisionDebugThickness
            BottomSide -> drawThickLine screen 0 h w h (Pixel collisionDebugColor) collisionDebugThickness
 
+
+-- | Render Level message
+displayMessage :: Surface -> IORef Resources -> GameInfo -> IO()
+displayMessage screen resources info = case gameStatus info of
+  GameLoading ->
+    printAlignCenter screen resources ("Level " ++ show (gameLevel info))
+  _ -> return ()
+
+-- * Auxiliary drawing functions
+
+-- | Render text right aligned
+printAlignRight :: Surface -> IORef Resources -> String -> (Int, Int) -> IO ()
+printAlignRight screen resources msg (x,y) = void $ do
+  font <- resFont <$> readIORef resources
+  message <- TTF.renderTextSolid font msg fontColor
+  renderAlignRight screen message (x,y)
+
+-- | Render text centered
+printAlignCenter :: Surface -> IORef Resources -> String -> IO ()
+printAlignCenter screen resources msg = void $ do
+  font <- resFont <$> readIORef resources
+  message <- TTF.renderTextSolid font msg fontColor
+  renderAlignCenter screen message
+
+-- * Auxiliary SDL functions
+
 drawThickRectangle surface (Rect x1 y1 x2 y2) pixel 0 = return ()
 drawThickRectangle surface rect@(Rect x1 y1 x2 y2) pixel n = do
   let n' = n-1
@@ -316,23 +337,9 @@ drawThickLine screen x1 y1 x2 y2 pixel n = do
   SDLP.line screen (x1+n') (y1) (x2+n') (y2) pixel
   drawThickLine screen x1 y1 x2 y2 pixel n'
 
--- * Painting functions
-displayMessage :: Surface -> IORef Resources -> GameInfo -> IO()
-displayMessage screen resources info = case gameStatus info of
-  GameLoading ->
-    printAlignCenter screen resources ("Level " ++ show (gameLevel info))
-  _ -> return ()
+-- * Auxiliary List functions
 
--- * Render text with alignment
-printAlignRight :: Surface -> IORef Resources -> String -> (Int, Int) -> IO ()
-printAlignRight screen resources msg (x,y) = void $ do
-  font <- resFont <$> readIORef resources
-  message <- TTF.renderTextSolid font msg fontColor
-  renderAlignRight screen message (x,y)
-
--- * Render text with alignment
-printAlignCenter :: Surface -> IORef Resources -> String -> IO ()
-printAlignCenter screen resources msg = void $ do
-  font <- resFont <$> readIORef resources
-  message <- TTF.renderTextSolid font msg fontColor
-  renderAlignCenter screen message
+updateL :: [a] -> Int -> a -> [a]
+updateL []     _ x  = [x]
+updateL (_:as) 0 a  = a : as
+updateL (a:as) n a' = a : updateL as (n-1) a'
