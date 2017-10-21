@@ -8,9 +8,9 @@ module Game.Physics.Collisions where
 import Data.Extra.Num
 import Data.Maybe
 import FRP.Yampa.VectorSpace
+import Physics.Collisions
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects
-import Physics.Collisions
 
 import Game.Physics.Shapes
 

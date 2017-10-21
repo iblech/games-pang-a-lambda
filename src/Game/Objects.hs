@@ -4,16 +4,14 @@
 -- | Game objects and collisions.
 module Game.Objects where
 
-import Control.Arrow ((***))
 import Data.Maybe (listToMaybe)
-import FRP.Yampa.VectorSpace
 
-import           Physics.TwoDimensions.Dimensions
-import           Physics.TwoDimensions.PhysicalObjects as P
+import Physics.TwoDimensions.Dimensions
+import Physics.TwoDimensions.PhysicalObjects  as P
 
+import           Game.Constants
 import qualified Game.Physics.Collisions      as C
-import Game.Constants
-import Game.Physics.Shapes
+import           Game.Physics.Shapes
 
 type Collision  = P.Collision  (ObjectName, ObjectKind)
 type Collisions = P.Collisions (ObjectName, ObjectKind)
@@ -43,6 +41,7 @@ data Object = Object { objectName           :: !ObjectName
                      }
  deriving (Show)
 
+findPlayer :: Objects -> Maybe Object
 findPlayer = listToMaybe . filter isPlayer
 
 isBall :: Object -> Bool

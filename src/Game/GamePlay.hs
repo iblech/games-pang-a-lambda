@@ -84,7 +84,7 @@ playerDead = playerDead' ^>> edge
         -- Player dead if it has no more lives left
         playerIsDead o = case objectProperties o of
           (PlayerProps _ lives _ _) -> lives < 0
-          otherwise                 -> False
+          _                         -> False
     
         -- This is only defined when the game is in progress.
         gamePlaying = GamePlaying == gameStatus (gameInfo gs)
