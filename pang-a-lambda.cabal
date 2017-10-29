@@ -5,6 +5,8 @@ name:                pang-a-lambda
 version:             0.2.0.0
 synopsis:            A super-pang clone
 description:         An FRP implementation of superpang
+                     To install this game you need the Yampa from here:
+                     https://github.com/keera-studios/pang-a-lambda
 license:             GPL-3
 license-file:        LICENSE
 author:              Ivan Perez
