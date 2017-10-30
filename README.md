@@ -12,7 +12,7 @@ $ cd pang-a-lambda*
 $ cabal update
 $ cabal sandbox init
 $ cabal install Yampa-0.10.4/
-$ cabal install pang-a-lambda.cabal
+$ cabal install
 $ ./.cabal-sandbox/bin/pang-a-lambda
 ```
 
