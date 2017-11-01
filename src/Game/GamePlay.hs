@@ -68,7 +68,7 @@ wholeGame = forgetPast $
           (\_ -> wholeGame)
 
 initialLevel :: Int
-initialLevel = 4
+initialLevel = 5
 
 -- * Game over
 
@@ -255,6 +255,11 @@ objBlocks 4 = [ staticBlock      "block11" (100, 125) (100, 57)
               , staticBlock      "block43" (850, 275) (100, 57)
               , staticBlock      "block44" (850, 350) (100, 57)
               , staticBlock      "block45" (850, 425) (100, 57)
+              ]
+objBlocks 5 = [ oscillatingBlock "block1" (100, 200) (100, 57) 100 10 100 10
+              , oscillatingBlock "block2" (350, 200) (100, 57) 100 10 100 10
+              , oscillatingBlock "block3" (600, 200) (100, 57) 100 10 100 10
+              , oscillatingBlock "block4" (850, 200) (100, 57) 100 10 100 10
               ]
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
