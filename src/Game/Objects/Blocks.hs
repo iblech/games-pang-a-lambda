@@ -77,3 +77,25 @@ oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ 
    -- just pass the given position along.
    vy :: SF Double Double
    vy = if vAmp /= 0 then (py +) ^<< osci vAmp vPeriod else identity
+
+-- | Moving block with an initial position and size, and horizontal and
+-- vertical amplitude and periods. If an amplitude is /not/ zero, the block
+-- moves along that dimension using a periodic oscillator (see 'osci').
+arcBlock :: ObjectName
+         -> Pos2D -> Size2D  -- Geometry
+         -> Double -> Double -- Horizontal oscillation amplitude and period
+         -> Double -> Double -- Vertical   oscillation amplitude and period
+         -> AliveObject
+arcBlock name p0 size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
+  t <- time -< ()
+  let x = hAmp * cos (2 * pi * t / hPeriod)
+      y = vAmp * sin (2 * pi * t / vPeriod)
+      p = p0 ^+^ (x,y)
+  returnA -< (Object { objectName           = name
+                     , objectKind           = Block
+                     , objectProperties     = BlockProps size
+                     , objectPos            = p
+                     , objectVel            = (0,0)
+                     , canCauseCollisions   = False
+                     , collisionEnergy      = 0
+                     }, False, [])
