@@ -64,8 +64,11 @@ import Game.Objects.Blocks
 
 wholeGame :: SF Controller GameState
 wholeGame = forgetPast $ 
-   switch (level 0 >>> (identity &&& playerDead))
+   switch (level initialLevel >>> (identity &&& playerDead))
           (\_ -> wholeGame)
+
+initialLevel :: Int
+initialLevel = 4
 
 -- * Game over
 
@@ -231,6 +234,27 @@ objBlocks 1 = [ oscillatingBlock "block1" (400, 200) (100, 57) 200 10   0  0 ]
 objBlocks 2 = [ oscillatingBlock "block1" (400, 200) (100, 57) 0    0 100 10 ]
 objBlocks 3 = [ oscillatingBlock "block1" (324, 200) (100, 57) 200  6   0  0
               , oscillatingBlock "block2" (700, 200) (100, 57) 200  6 100 10
+              ]
+objBlocks 4 = [ staticBlock      "block11" (100, 125) (100, 57)
+              , staticBlock      "block12" (100, 200) (100, 57)
+              , staticBlock      "block13" (100, 275) (100, 57)
+              , staticBlock      "block14" (100, 350) (100, 57)
+              , staticBlock      "block15" (100, 425) (100, 57)
+              , staticBlock      "block21" (350, 125) (100, 57)
+              , staticBlock      "block22" (350, 200) (100, 57)
+              , staticBlock      "block23" (350, 275) (100, 57)
+              , staticBlock      "block24" (350, 350) (100, 57)
+              , staticBlock      "block25" (350, 425) (100, 57)
+              , staticBlock      "block31" (600, 125) (100, 57)
+              , staticBlock      "block32" (600, 200) (100, 57)
+              , staticBlock      "block33" (600, 275) (100, 57)
+              , staticBlock      "block34" (600, 350) (100, 57)
+              , staticBlock      "block35" (600, 425) (100, 57)
+              , staticBlock      "block41" (850, 125) (100, 57)
+              , staticBlock      "block42" (850, 200) (100, 57)
+              , staticBlock      "block43" (850, 275) (100, 57)
+              , staticBlock      "block44" (850, 350) (100, 57)
+              , staticBlock      "block45" (850, 425) (100, 57)
               ]
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
