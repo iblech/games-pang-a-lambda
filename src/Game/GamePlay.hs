@@ -268,6 +268,19 @@ objBlocks 7 = [ arcBlock "block1" (100, 200) (100, 57) 100 10    100 10
               , arcBlock "block3" (600, 200) (100, 57) 100 10    100 10
               , arcBlock "block4" (850, 200) (100, 57) 100 (-10) 100 (-10)
               ]
+objBlocks 8 = [ slidingBlock "block11" (100, 200) (100, 57) 100    5 2
+              , slidingBlock "block12" (350, 200) (100, 57) 100    5 2
+              , slidingBlock "block13" (600, 200) (100, 57) 100    5 2
+              , slidingBlock "block14" (850, 200) (100, 57) 100    5 2
+              , slidingBlock "block21" (200, 300) (100, 57) (-100) 5 2
+              , slidingBlock "block22" (450, 300) (100, 57) (-100) 5 2
+              , slidingBlock "block23" (700, 300) (100, 57) (-100) 5 2
+              , slidingBlock "block24" (950, 300) (100, 57) (-100) 5 2
+              , slidingBlock "block31" (100, 400) (100, 57) 100    5 2
+              , slidingBlock "block32" (350, 400) (100, 57) 100    5 2
+              , slidingBlock "block33" (600, 400) (100, 57) 100    5 2
+              , slidingBlock "block34" (850, 400) (100, 57) 100    5 2
+              ]
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
 -- | Four walls around the scene.
