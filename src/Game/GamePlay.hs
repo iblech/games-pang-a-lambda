@@ -67,9 +67,6 @@ wholeGame = forgetPast $
    switch (level initialLevel >>> (identity &&& playerDead))
           (\_ -> wholeGame)
 
-initialLevel :: Int
-initialLevel = 7
-
 -- * Game over
 
 -- | Detect the player in the game state is dead (SF).

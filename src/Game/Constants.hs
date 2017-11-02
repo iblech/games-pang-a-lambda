@@ -107,3 +107,8 @@ collisionDebugThickness = 3
 
 debugCollisions :: Bool
 debugCollisions = False
+
+-- Debugging levels
+
+initialLevel :: Int
+initialLevel = 0
