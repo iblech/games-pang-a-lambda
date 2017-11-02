@@ -281,7 +281,70 @@ objBlocks 8 = [ slidingBlock "block11" (100, 200) (100, 57) 100    5 2
               , slidingBlock "block33" (600, 400) (100, 57) 100    5 2
               , slidingBlock "block34" (850, 400) (100, 57) 100    5 2
               ]
-objBlocks 9 = [ sinusoidalBlock "block1"  (100, 300) (100, 57) 800 10 0 100 2 ]
+objBlocks 9  = [ sinusoidalBlock "block1"  (100, 300) (100, 57) 800 10 0 100 2 ]
+objBlocks 10 = [ staticBlock "block1" (100, 200)             (100, 57) 
+               , staticBlock "block2" (200, 200)             (100, 57) 
+               , staticBlock "block3" (100, 400)             (100, 57) 
+               , staticBlock "block4" (gameWidth - 100, 200) (100, 57) 
+               , staticBlock "block5" (gameWidth - 200, 200) (100, 57) 
+               , staticBlock "block6" (gameWidth - 200, 400) (100, 57) 
+               ]
+objBlocks 11 = [ oscillatingBlock "block1" (100, 200)             (100, 57) 0 0 100 10
+               , oscillatingBlock "block2" (200, 200)             (100, 57) 0 0 100 10
+               , staticBlock      "block3" (100, 400)             (100, 57) 
+               , oscillatingBlock "block4" (gameWidth - 100, 200) (100, 57) 0 0 100 10
+               , oscillatingBlock "block5" (gameWidth - 200, 200) (100, 57) 0 0 100 10
+               , staticBlock      "block6" (gameWidth - 200, 400) (100, 57) 
+               ]
+objBlocks 12 = [ oscillatingBlock "block1" (100, 200)             (100, 57) 0 0 100    10
+               , oscillatingBlock "block2" (200, 200)             (100, 57) 0 0 (-100) 10
+               , staticBlock      "block3" (100, 400)             (100, 57) 
+               , oscillatingBlock "block4" (gameWidth - 100, 200) (100, 57) 0 0 100    10
+               , oscillatingBlock "block5" (gameWidth - 200, 200) (100, 57) 0 0 (-100) 10
+               , staticBlock      "block6" (gameWidth - 200, 400) (100, 57) 
+               ]
+objBlocks 13 = [ staticBlock "block1" (100, 200)             (100, 57)
+               , staticBlock "block2" (200, 200)             (100, 57)
+               , staticBlock "block3" (300, 200)             (100, 57) 
+               , staticBlock "block4" (gameWidth - 100, 200) (100, 57)
+               , staticBlock "block5" (gameWidth - 200, 200) (100, 57)
+               , staticBlock "block6" (gameWidth - 300, 200) (100, 57) 
+               ]
+
+objBlocks 14 = [ fallingBlock "block1" (0, gameHeight - 100) (100, 57) (gameWidth - 100) 10 2 (-80) 110]
+
+objBlocks 15 = [ staticBlock "block1" (gameWidth / 2 - 100, 110) (100, 57)
+               , staticBlock "block2" (gameWidth / 2 - 200, 110) (100, 57)
+               , staticBlock "block3" (gameWidth / 2 - 300, 110) (100, 57) 
+               , staticBlock "block6" (gameWidth / 2      , 110) (100, 57) 
+               , staticBlock "block4" (gameWidth / 2 + 100, 110) (100, 57)
+               , staticBlock "block5" (gameWidth / 2 + 200, 110) (100, 57)
+               ]
+
+objBlocks 16 = [ staticBlock "block2" (gameWidth / 2 - 200, 200) (100, 57)
+               , staticBlock "block5" (gameWidth / 2 + 200, 200) (100, 57)
+               ]
+
+objBlocks 17 = [ oscillatingBlock "block1" (gameWidth / 2 - 100, 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block2" (gameWidth / 2 - 200, 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block3" (gameWidth / 2 - 300, 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block4" (gameWidth / 2 - 400, 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block5" (gameWidth / 2      , 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block6" (gameWidth / 2 + 100, 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block7" (gameWidth / 2 + 200, 350) (100, 57) 0 0 (-180) 9
+               , oscillatingBlock "block8" (gameWidth / 2 + 300, 350) (100, 57) 0 0 (-180) 9
+               ]
+
+objBlocks 18 = [ oscillatingBlock "block1" (              0, 275) (100, 57) 0 0 (-100) 9
+               , oscillatingBlock "block2" (            100, 250) (100, 57) 0 0 (-75)  9
+               , oscillatingBlock "block3" (            200, 225) (100, 57) 0 0 (-50)  9
+               , oscillatingBlock "block4" (            300, 200) (100, 57) 0 0 (-25)  9
+               , oscillatingBlock "block5" (gameWidth - 100, 275) (100, 57) 0 0 (-100) 9
+               , oscillatingBlock "block6" (gameWidth - 200, 250) (100, 57) 0 0 (-75)  9
+               , oscillatingBlock "block7" (gameWidth - 300, 225) (100, 57) 0 0 (-50)  9
+               , oscillatingBlock "block8" (gameWidth - 400, 200) (100, 57) 0 0 (-25)  9
+               ]
+
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
 -- | Four walls around the scene.

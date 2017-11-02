@@ -17,6 +17,7 @@ module Game.Objects.Blocks where
 
 -- External imports
 import Prelude hiding (id)
+import Debug.Trace
 import FRP.Yampa
 import FRP.Yampa.Extra
 import FRP.Yampa.Switches
@@ -61,7 +62,7 @@ oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ 
                      , objectProperties     = BlockProps size
                      , objectPos            = (px', py')
                      , objectVel            = (0,0)
-                     , canCauseCollisions   = False
+                     , canCauseCollisions   = True
                      , collisionEnergy      = 0
                      }, False, [])
 
@@ -92,7 +93,7 @@ arcBlock name p0 size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
                      , objectProperties     = BlockProps size
                      , objectPos            = p
                      , objectVel            = (0,0)
-                     , canCauseCollisions   = False
+                     , canCauseCollisions   = True
                      , collisionEnergy      = 0
                      }, False, [])
 
@@ -120,7 +121,7 @@ slidingBlock name (x0, y) size hDisplacement moveDuration waitDuration =
                        , objectProperties     = BlockProps size
                        , objectPos            = p
                        , objectVel            = (0,0)
-                       , canCauseCollisions   = False
+                       , canCauseCollisions   = True
                        , collisionEnergy      = 0
                        }, False, [])
   
@@ -198,3 +199,68 @@ sinusoidalBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisp
         proportionWait     = time >>^ (/wait)              -- 0 to 1
         isOne              = (>= 1) ^>> edge
         isZero             = (<= 0) ^>> edge
+
+-- | Creates a block that slides sideways, waits for some time, slides back,
+--   waits again, and repeats, with a vertical displacement always down, by a
+--   given amount after every step.
+fallingBlock :: ObjectName
+             -> Pos2D -> Size2D  -- Geometry
+             -> Double           -- horizontal displacement
+             -> Time             -- time to move
+             -> Time             -- time to wait
+             -> Double           -- displacement at the end
+             -> Double           -- min vertical position
+             -> AliveObject
+fallingBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisplacement verticalMin =
+  ListSF $ proc _ -> do
+
+    -- Proportion is a number from 0 to 1. It increases for some time, stays at
+    -- one, and goes back.
+    propX <- strangeClock moveDuration waitDuration -< ()
+    
+    propY <- vStepClock -< ()
+  
+    -- Calculate position using the time-based proportion
+    let x = x0 + propX * hDisplacement
+        y = max verticalMin (y0 + propY * vDisplacement)
+        p = (x, y)
+  
+    returnA -< (Object { objectName           = name
+                       , objectKind           = Block
+                       , objectProperties     = BlockProps size
+                       , objectPos            = p
+                       , objectVel            = (0,0)
+                       , canCauseCollisions   = True
+                       , collisionEnergy      = 0
+                       }, False, [])
+  
+  where
+
+    vStepClock :: SF () Double
+    vStepClock = vStepClock' 0
+
+    vStepClock' :: Double -> SF () Double
+    vStepClock' n = switch (constant n &&& (time >>> (>= moveDuration) ^>> traceSF >>> edge >>^ (`tag` n)))
+                           (\n' -> switch ((time >>^ (/waitDuration)) >>> (arr (+n') &&& ((>= 1) ^>> edge)))
+                                          (\_ -> vStepClock' (n' + 1)))
+
+    -- | Signal that goes from zero to one in 'dur' seconds, stays at one
+    --   for 'wait' seconds, repeats in the opposite direction.
+    strangeClock :: Time -> Time -> SF () Time
+    strangeClock dur wait =
+        switch (proportionMove     >>> (identity   &&& isOne))  $ \_ ->
+        switch (proportionWait     >>> (constant 1 &&& isOne))  $ \_ ->
+        switch (proportionMoveBack >>> (identity   &&& isZero)) $ \_ ->
+        switch (proportionWait     >>> (constant 0 &&& isOne))  $ \_ ->
+        strangeClock dur wait
+
+      where
+
+        proportionMove     = time >>^ (/dur)               -- 0 to 1
+        proportionMoveBack = time >>^ (dur -) >>^ (/dur)   -- 1 to 0
+        proportionWait     = time >>^ (/wait)              -- 0 to 1
+        isOne              = (>= 1) ^>> edge
+        isZero             = (<= 0) ^>> edge
+
+traceSF :: Show a => SF a a
+traceSF = arr (\a -> trace (show a) a)
