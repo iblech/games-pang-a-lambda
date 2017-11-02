@@ -16,7 +16,7 @@
 module Game.Objects.Blocks where
 
 -- External imports
-import Prelude hiding (id, (.))
+import Prelude hiding (id)
 import FRP.Yampa
 import FRP.Yampa.Extra
 import FRP.Yampa.Switches
@@ -125,6 +125,62 @@ slidingBlock name (x0, y) size hDisplacement moveDuration waitDuration =
                        }, False, [])
   
   where
+    -- | Signal that goes from zero to one in 'dur' seconds, stays at one
+    --   for 'wait' seconds, repeats in the opposite direction.
+    strangeClock :: Time -> Time -> SF () Time
+    strangeClock dur wait =
+        switch (proportionMove     >>> (identity   &&& isOne))  $ \_ ->
+        switch (proportionWait     >>> (constant 1 &&& isOne))  $ \_ ->
+        switch (proportionMoveBack >>> (identity   &&& isZero)) $ \_ ->
+        switch (proportionWait     >>> (constant 0 &&& isOne))  $ \_ ->
+        strangeClock dur wait
+
+      where
+
+        proportionMove     = time >>^ (/dur)               -- 0 to 1
+        proportionMoveBack = time >>^ (dur -) >>^ (/dur)   -- 1 to 0
+        proportionWait     = time >>^ (/wait)              -- 0 to 1
+        isOne              = (>= 1) ^>> edge
+        isZero             = (<= 0) ^>> edge
+
+-- | Creates a block that slides sideways, waits for some time, slides back,
+--   waits again, and repeats, with a vertical displacement of a sine.
+sinusoidalBlock :: ObjectName
+                -> Pos2D -> Size2D  -- Geometry
+                -> Double           -- horizontal displacement
+                -> Time             -- time to move
+                -> Time             -- time to wait
+                -> Double
+                -> Time             -- time to move
+                -> AliveObject
+sinusoidalBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisplacement verticalPeriod =
+  ListSF $ proc _ -> do
+
+    -- Proportion is a number from 0 to 1. It increases for some time, stays at
+    -- one, and goes back.
+    propX <- strangeClock moveDuration waitDuration -< ()
+    
+    propY <- (sin . timeToPeriod) ^<< time -< ()
+  
+    -- Calculate position using the time-based proportion
+    let x = x0 + propX * hDisplacement
+        y = y0 + propY * vDisplacement
+        p = (x, y)
+  
+    returnA -< (Object { objectName           = name
+                       , objectKind           = Block
+                       , objectProperties     = BlockProps size
+                       , objectPos            = p
+                       , objectVel            = (0,0)
+                       , canCauseCollisions   = True
+                       , collisionEnergy      = 0
+                       }, False, [])
+  
+  where
+
+    timeToPeriod :: Time -> Double
+    timeToPeriod t = 2 * pi * t / verticalPeriod
+
     -- | Signal that goes from zero to one in 'dur' seconds, stays at one
     --   for 'wait' seconds, repeats in the opposite direction.
     strangeClock :: Time -> Time -> SF () Time
