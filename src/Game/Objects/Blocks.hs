@@ -153,15 +153,16 @@ sinusoidalBlock :: ObjectName
                 -> Time             -- time to wait
                 -> Double
                 -> Time             -- time to move
+                -> Time             -- t0
                 -> AliveObject
-sinusoidalBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisplacement verticalPeriod =
+sinusoidalBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisplacement verticalPeriod time0 =
   ListSF $ proc _ -> do
 
     -- Proportion is a number from 0 to 1. It increases for some time, stays at
     -- one, and goes back.
     propX <- strangeClock moveDuration waitDuration -< ()
     
-    propY <- (sin . timeToPeriod) ^<< time -< ()
+    propY <- (sin . timeToPeriod . (+time0)) ^<< time -< ()
   
     -- Calculate position using the time-based proportion
     let x = x0 + propX * hDisplacement
@@ -264,3 +265,18 @@ fallingBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisplac
 
 traceSF :: Show a => SF a a
 traceSF = arr (\a -> trace (show a) a)
+
+-- | Static block builder, given a name, a size and its base
+-- position.
+disappearingBlock :: ObjectName -> Pos2D -> Size2D -> Time -> AliveObject
+disappearingBlock name pos size maxTime = ListSF $ proc _ -> do
+  t    <- time -< ()
+  let dead = t >= maxTime
+  returnA -< (Object { objectName           = name
+                     , objectKind           = Block
+                     , objectProperties     = BlockProps size
+                     , objectPos            = pos
+                     , objectVel            = (0,0)
+                     , canCauseCollisions   = False
+                     , collisionEnergy      = 0
+                     }, dead, [])
