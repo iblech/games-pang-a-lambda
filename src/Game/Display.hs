@@ -97,7 +97,8 @@ loadResources = do
   ballImages50   <- mapM SDL.load ["data/ball1-100.png", "data/ball2-100.png"]
   ballImages25   <- mapM SDL.load ["data/ball1-50.png",  "data/ball2-50.png"]
   ballImages12   <- mapM SDL.load ["data/ball1-25.png",  "data/ball2-25.png"]
-  blockImg       <- SDL.load "data/block100.png"
+  hblockImg       <- SDL.load "data/hblock100.png"
+  vblockImg       <- SDL.load "data/vblock57.png"
 
   backgrounds <- mapM SDL.load ["data/level0.png","data/level1.png","data/level2.png","data/level3.png"]
 
@@ -113,7 +114,8 @@ loadResources = do
                                   , (0, ballImages25)
                                   , (0, ballImages12)
                                   ]
-                                  blockImg
+                                  hblockImg
+                                  vblockImg
                                   backgrounds
 
 getBallImage :: IORef Resources -> Int -> IO Surface
@@ -220,6 +222,7 @@ paintObject screen resRef time object = do
       let (px,py)  = (objectPos object)
           (x,y)    = (round *** round) (px,gameHeight - py -h')
           -- (w,h)    = (round *** round) sz
+          blockImage = if w' > h' then hblockImage else vblockImage
       blockImg <- blockImage <$> readIORef resRef
       blitSurface blockImg Nothing screen (Just (Rect x y (-1) (-1)))
       -- fillRect screen (Just (Rect x y w h)) (Pixel blockColor)

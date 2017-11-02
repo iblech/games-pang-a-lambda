@@ -344,6 +344,54 @@ objBlocks 18 = [ oscillatingBlock "block1" (              0, 275) (100, 57) 0 0 
                , oscillatingBlock "block7" (gameWidth - 300, 225) (100, 57) 0 0 (-50)  9
                , oscillatingBlock "block8" (gameWidth - 400, 200) (100, 57) 0 0 (-25)  9
                ]
+objBlocks 19 = [ staticBlock "block1" ((gameWidth - 57)/2, 120) (57, 100)
+               , staticBlock "block2" ((gameWidth - 57)/2, 220) (57, 100)
+               , staticBlock "block3" ((gameWidth - 57)/2, 320) (57, 100)
+               , staticBlock "block4" ((gameWidth - 57)/2, 420) (57, 100)
+               ]
+objBlocks 20 = [ staticBlock "block11" (100, 120)       (57, 100)
+               , staticBlock "block12" (100, 220)       (57, 100)
+               , staticBlock "block13" (100, 320)       (57, 100)
+               , staticBlock "block14" (100, 420)       (57, 100)
+               , staticBlock "block21" (300, 120) (57, 100)
+               , staticBlock "block22" (300, 220) (57, 100)
+               , staticBlock "block23" (300, 320) (57, 100)
+               , staticBlock "block24" (300, 420) (57, 100)
+               , staticBlock "block41" (gameWidth - 157, 120) (57, 100)
+               , staticBlock "block42" (gameWidth - 157, 220) (57, 100)
+               , staticBlock "block43" (gameWidth - 157, 320) (57, 100)
+               , staticBlock "block44" (gameWidth - 157, 420) (57, 100)
+               , staticBlock "block51" (gameWidth - 357, 120) (57, 100)
+               , staticBlock "block52" (gameWidth - 357, 220) (57, 100)
+               , staticBlock "block53" (gameWidth - 357, 320) (57, 100)
+               , staticBlock "block54" (gameWidth - 357, 420) (57, 100)
+               ]
+objBlocks 21 = [ oscillatingBlock "block11" ((gameWidth - 57) / 2, 120) (57, 100) 0 0 100 10
+               , oscillatingBlock "block12" ((gameWidth - 57) / 2, 220) (57, 100) 0 0 100 10
+               , oscillatingBlock "block13" ((gameWidth - 57) / 2, 320) (57, 100) 0 0 100 10
+               , oscillatingBlock "block14" ((gameWidth - 57) / 2, 420) (57, 100) 0 0 100 10
+               , oscillatingBlock "block15" ((gameWidth - 57) / 2, 520) (57, 100) 0 0 100 10
+               ]
+objBlocks 22 = [ oscillatingBlock "block11" (100, 120)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block12" (100, 220)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block13" (100, 320)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block14" (100, 420)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block15" (100, 520)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block41" (gameWidth - 157, 120) (57, 100) 0 0 100 10
+               , oscillatingBlock "block42" (gameWidth - 157, 220) (57, 100) 0 0 100 10
+               , oscillatingBlock "block43" (gameWidth - 157, 320) (57, 100) 0 0 100 10
+               , oscillatingBlock "block44" (gameWidth - 157, 420) (57, 100) 0 0 100 10
+               , oscillatingBlock "block45" (gameWidth - 157, 520) (57, 100) 0 0 100 10
+               ]
+objBlocks 23 = [ oscillatingBlock "block11" (100,      167)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block12" (300 - 57, 167)             (57, 100) 0 0 100 10
+               , oscillatingBlock "block13" (100,      110)             (100, 57) 0 0 100 10
+               , oscillatingBlock "block14" (200,      110)             (100, 57) 0 0 100 10
+               , oscillatingBlock "block21" (gameWidth - 300,      167) (57, 100) 0 0 100 10
+               , oscillatingBlock "block22" (gameWidth - 100 - 57, 167) (57, 100) 0 0 100 10
+               , oscillatingBlock "block23" (gameWidth - 300,      110) (100, 57) 0 0 100 10
+               , oscillatingBlock "block24" (gameWidth - 200,      110) (100, 57) 0 0 100 10
+               ]
 
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 

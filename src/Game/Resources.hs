@@ -10,7 +10,8 @@ data Resources = Resources
   , miniFont     :: TTF.Font
   , playerImages :: [(PlayerVisualState, (Int, [SDL.Surface]))]
   , ballImages   :: [(Int, [SDL.Surface])]
-  , blockImage   :: SDL.Surface
+  , hblockImage  :: SDL.Surface
+  , vblockImage  :: SDL.Surface
   , backgrounds  :: [SDL.Surface]
   }
 
