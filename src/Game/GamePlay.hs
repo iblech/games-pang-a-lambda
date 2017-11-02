@@ -281,6 +281,7 @@ objBlocks 8 = [ slidingBlock "block11" (100, 200) (100, 57) 100    5 2
               , slidingBlock "block33" (600, 400) (100, 57) 100    5 2
               , slidingBlock "block34" (850, 400) (100, 57) 100    5 2
               ]
+objBlocks 9 = [ sinusoidalBlock "block1"  (100, 300) (100, 57) 800 10 0 100 2 ]
 objBlocks n = [ staticBlock      "block1" (200, 200) (100, 57) ]
 
 -- | Four walls around the scene.
