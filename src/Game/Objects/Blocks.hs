@@ -1,5 +1,4 @@
 {-# LANGUAGE Arrows     #-}
-{-# LANGUAGE MultiWayIf #-}
 -- | This module defines game blocks.
 --
 -- Objects are represented as Signal Functions as well ('ObjectSF'). In this
@@ -78,13 +77,10 @@ oscillatingBlock name (px, py) size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ 
    vy :: SF Double Double
    vy = if vAmp /= 0 then (py +) ^<< osci vAmp vPeriod else identity
 
--- | Moving block with an initial position and size, and horizontal and
--- vertical amplitude and periods. If an amplitude is /not/ zero, the block
--- moves along that dimension using a periodic oscillator (see 'osci').
 arcBlock :: ObjectName
          -> Pos2D -> Size2D  -- Geometry
-         -> Double -> Double -- Horizontal oscillation amplitude and period
-         -> Double -> Double -- Vertical   oscillation amplitude and period
+         -> Double -> Double
+         -> Double -> Double
          -> AliveObject
 arcBlock name p0 size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
   t <- time -< ()
@@ -99,3 +95,50 @@ arcBlock name p0 size hAmp hPeriod vAmp vPeriod = ListSF $ proc _ -> do
                      , canCauseCollisions   = False
                      , collisionEnergy      = 0
                      }, False, [])
+
+-- | Creates a block that slides sideways, waits for some time, slides back,
+--   waits again, and repeats.
+slidingBlock :: ObjectName
+             -> Pos2D -> Size2D  -- Geometry
+             -> Double           -- horizontal displacement
+             -> Time             -- time to move
+             -> Time             -- time to wait
+             -> AliveObject
+slidingBlock name (x0, y) size hDisplacement moveDuration waitDuration =
+  ListSF $ proc _ -> do
+
+    -- Proportion is a number from 0 to 1. It increases for some time, stays at
+    -- one, and goes back.
+    prop <- strangeClock moveDuration waitDuration -< ()
+  
+    -- Calculate position using the time-based proportion
+    let x = x0 + prop * hDisplacement
+        p = (x, y)
+  
+    returnA -< (Object { objectName           = name
+                       , objectKind           = Block
+                       , objectProperties     = BlockProps size
+                       , objectPos            = p
+                       , objectVel            = (0,0)
+                       , canCauseCollisions   = False
+                       , collisionEnergy      = 0
+                       }, False, [])
+  
+  where
+    -- | Signal that goes from zero to one in 'dur' seconds, stays at one
+    --   for 'wait' seconds, repeats in the opposite direction.
+    strangeClock :: Time -> Time -> SF () Time
+    strangeClock dur wait =
+        switch (proportionMove     >>> (identity   &&& isOne))  $ \_ ->
+        switch (proportionWait     >>> (constant 1 &&& isOne))  $ \_ ->
+        switch (proportionMoveBack >>> (identity   &&& isZero)) $ \_ ->
+        switch (proportionWait     >>> (constant 0 &&& isOne))  $ \_ ->
+        strangeClock dur wait
+
+      where
+
+        proportionMove     = time >>^ (/dur)               -- 0 to 1
+        proportionMoveBack = time >>^ (dur -) >>^ (/dur)   -- 1 to 0
+        proportionWait     = time >>^ (/wait)              -- 0 to 1
+        isOne              = (>= 1) ^>> edge
+        isZero             = (<= 0) ^>> edge
