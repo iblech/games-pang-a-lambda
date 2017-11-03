@@ -186,12 +186,12 @@ render resources shownState = do
 -- ** Painting functions
 displayInfo :: Surface -> IORef Resources -> GameInfo -> Objects -> IO()
 displayInfo screen resRef over objs = do
-  printAlignRight screen resRef
-    ("Time: " ++ printf "%.2f" (gameTime over)) (10,50)
+  msg <- printSolid resRef ("Time: " ++ printf "%.2f" (gameTime over))
+  renderAlignRight screen msg (10,50)
   let p = findPlayer objs
   case p of
-    Just p' -> let e = playerEnergy p'
-               in printAlignRight screen resRef ("Energy: " ++ show e) (10,100)
+    Just p' -> do msg <- printSolid resRef ("Energy: " ++ show (playerEnergy p'))
+                  renderAlignRight screen msg (10,100)
     Nothing -> return ()
 
 paintObject :: Surface -> IORef Resources -> Double -> Object -> IO ()
@@ -298,22 +298,15 @@ paintShape screen resources time object =
 -- | Render Level message
 displayMessage :: Surface -> IORef Resources -> GameInfo -> IO()
 displayMessage screen resources info = case gameStatus info of
-  GameLoading ->
-    printAlignCenter screen resources ("Level " ++ show (gameLevel info))
+  GameLoading -> do
+    msg <- printSolid resources ("Level " ++ show (gameLevel info))
+    renderAlignCenter screen msg
   _ -> return ()
 
 -- * Auxiliary drawing functions
 
--- | Render text right aligned
-printAlignRight :: Surface -> IORef Resources -> String -> (Int, Int) -> IO ()
-printAlignRight screen resources msg (x,y) = void $ do
-  font <- resFont <$> readIORef resources
+printSolid :: IORef Resources -> String -> IO Surface
+printSolid resources msg = do
+  font    <- resFont <$> readIORef resources
   message <- TTF.renderTextSolid font msg fontColor
-  renderAlignRight screen message (x,y)
-
--- | Render text centered
-printAlignCenter :: Surface -> IORef Resources -> String -> IO ()
-printAlignCenter screen resources msg = void $ do
-  font <- resFont <$> readIORef resources
-  message <- TTF.renderTextSolid font msg fontColor
-  renderAlignCenter screen message
+  return message
