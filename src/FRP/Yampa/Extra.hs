@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiWayIf #-}
+-- | Auxiliary module related to Yampa.
 module FRP.Yampa.Extra where
 
 import Debug.Trace
@@ -6,7 +7,9 @@ import FRP.Yampa
 import FRP.Yampa.InternalCore
 import FRP.Yampa.Switches
 
--- * Auxiliary FRP stuff
+-- * Events
+
+-- | Isomorphism between Maybe and Event
 maybeToEvent :: Maybe a -> Event a
 maybeToEvent = maybe noEvent Event
 
@@ -30,21 +33,24 @@ infixr 2 ||>
 
 -- * ListSFs
 
--- ** ListSF that never dies or produces offspring
+-- | ListSF that never dies or produces offspring.
 inertSF :: SF a b -> ListSF a b
 inertSF sf = ListSF (sf >>> arr (\o -> (o, False, [])))
 
 -- ** Event-producing SF combinators
+
+-- | Produce an event when a Boolean signal turns 'True'.
 spikeOn :: SF a Bool -> SF a (Event ())
 spikeOn sf = noEvent --> (sf >>> edge)
 
+-- | Produce an event when a signal changes.
 ifDiff :: Eq a => a -> SF a (Event a)
 ifDiff x = loopPre x $ arr $ \(x',y') ->
   if x' == y'
    then (noEvent,  x')
    else (Event x', x')
 
--- ** Repetitive switching
+-- * Repetitive switching
 
 repeatSF :: (c -> SF a (b, Event c)) -> c -> SF a b
 repeatSF sf c = switch (sf c) (repeatSF sf)
@@ -60,6 +66,42 @@ restartOn sf sfc = switch (sf &&& sfc)
 -- restartRevOn sf sfc = switch (sf &&& sfc)
 --                              (\_ -> restartOn sf sfc)
 -- 
+
+-- * Time access and time manipulation.
+
+-- | Time deltas generator.
+deltas = localTime >>> loopPre 0 (arr $ \(lt, ot) -> (lt-ot, lt))
+
+timeTransform :: (DTime -> DTime) -> SF a b -> SF a b
+timeTransform transform sf = SF tf
+ where tf a = let (sf', b) = (sfTF sf) a
+                  sf''     = timeTransformF transform sf'
+              in (sf'', b)
+
+timeTransformF :: (DTime -> DTime) -> SF' a b -> SF' a b
+timeTransformF transform sf = SF' tf
+ where tf dt a = let dt'      = transform dt
+                     (sf', b) = (sfTF' sf) dt' a
+                     sf''     = timeTransformF transform sf'
+                 in (sf'', b)
+
+timeTransformSF :: SF a (DTime -> DTime) -> SF a b -> SF a b
+timeTransformSF sfTime sf = SF tf
+ where tf a = let (sf', b) = (sfTF sf) a
+                  (sfTime',_) = (sfTF sfTime) a
+                  sf''     = timeTransformSF' sfTime' sf'
+              in (sf'', b)
+
+
+timeTransformSF' :: SF' a (DTime -> DTime) -> SF' a b -> SF' a b
+timeTransformSF' sfTime sf = SF' tf
+ where tf dt a = let (sfTime', transform) = (sfTF' sfTime) dt a
+                     dt'      = transform dt
+                     (sf', b) = (sfTF' sf) dt' a
+                     sf''     = timeTransformSF' sfTime' sf'
+                 in (sf'', b)
+
+-- ** Time-reversible variants.
 
 revSwitch :: SF a (b, Event c) -> (c -> SF a b) -> SF a b
 revSwitch (SF {sfTF = tf10}) k = SF {sfTF = tf0}
@@ -167,36 +209,7 @@ clocked' clockSF sf = SF' $ \dt a -> let (cSF', dt') = sfTF' clockSF dt a
                                          (sf', b) = sfTF' sf dt' a
                                      in (clocked' cSF' sf', b)
 
-deltas = localTime >>> loopPre 0 (arr $ \(lt, ot) -> (lt-ot, lt))
+-- * Debugging
 
-type Endo a = a -> a
-
-timeTransform :: Endo DTime -> SF a b -> SF a b
-timeTransform transform sf = SF tf
- where tf a = let (sf', b) = (sfTF sf) a
-                  sf''     = timeTransformF transform sf'
-              in (sf'', b)
-
-timeTransformF :: Endo DTime -> SF' a b -> SF' a b
-timeTransformF transform sf = SF' tf
- where tf dt a = let dt'      = transform dt
-                     (sf', b) = (sfTF' sf) dt' a
-                     sf''     = timeTransformF transform sf'
-                 in (sf'', b)
-
-timeTransformSF :: SF a (DTime -> DTime) -> SF a b -> SF a b
-timeTransformSF sfTime sf = SF tf
- where tf a = let (sf', b) = (sfTF sf) a
-                  (sfTime',_) = (sfTF sfTime) a
-                  sf''     = timeTransformSF' sfTime' sf'
-              in (sf'', b)
-
-
-timeTransformSF' :: SF' a (DTime -> DTime) -> SF' a b -> SF' a b
-timeTransformSF' sfTime sf = SF' tf
- where tf dt a = let (sfTime', transform) = (sfTF' sfTime) dt a
-                     dt'      = transform dt
-                     (sf', b) = (sfTF' sf) dt' a
-                     sf''     = timeTransformSF' sfTime' sf'
-                 in (sf'', b)
-    
+traceSF :: Show a => SF a a
+traceSF = arr (\a -> trace (show a) a)

@@ -263,9 +263,6 @@ fallingBlock name (x0, y0) size hDisplacement moveDuration waitDuration vDisplac
         isOne              = (>= 1) ^>> edge
         isZero             = (<= 0) ^>> edge
 
-traceSF :: Show a => SF a a
-traceSF = arr (\a -> trace (show a) a)
-
 -- | Static block builder, given a name, a size and its base
 -- position.
 disappearingBlock :: ObjectName -> Pos2D -> Size2D -> Time -> AliveObject
