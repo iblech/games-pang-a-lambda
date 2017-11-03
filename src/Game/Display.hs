@@ -3,6 +3,7 @@ module Game.Display where
 
 import           Control.Arrow              ((***))
 import           Control.Monad
+import           Control.Monad.IfElse
 import           Data.IORef
 import           Data.Maybe (fromJust)
 import           FRP.Yampa.VectorSpace
@@ -19,17 +20,16 @@ import Game.Constants
 import Game.GameState
 import Game.Objects
 import Game.Resources
-import Game.Physics.Shapes
+import Physics.Shapes.BasicCirclesAABB
 
 -- * Display handling
 
 initializeDisplay :: IO ()
 initializeDisplay =
-   -- Initialise SDL
   SDL.init [InitEverything]
 
 initGraphs :: IORef Resources -> IO ()
-initGraphs _res = do
+initGraphs _res = void $ do
   screen <- SDL.setVideoMode (round width) (round height) 32 [SWSurface]
   SDL.setCaption gameName ""
 
@@ -39,8 +39,6 @@ initGraphs _res = do
 
   -- Hide mouse
   SDL.showCursor True
-
-  return ()
 
 -- * Resource handling
 
@@ -56,29 +54,22 @@ loadResources = do
   _ <- TTF.init
 
   -- Load the fonts we need
-  let gameFont = "data/lacuna.ttf"
-  font  <- TTF.openFont gameFont 32 -- 32: fixed size?
-
-  -- Load the fonts we need
-  let gameFont = "data/lacuna.ttf"
-  font2  <- TTF.openFont gameFont 8 -- 32: fixed size?
-
-  backImages <- mapM SDL.load ["data/back.png"]
-
-  hitImages  <- mapM SDL.load ["data/hit0.png"] -- , "data/hit2.png"]
-
-  walkLeftImages <- mapM SDL.load [ "data/left-p3_walk01.png"
-                                  , "data/left-p3_walk02.png"
-                                  , "data/left-p3_walk03.png"
-                                  , "data/left-p3_walk04.png"
-                                  , "data/left-p3_walk05.png"
-                                  , "data/left-p3_walk06.png"
-                                  , "data/left-p3_walk07.png"
-                                  , "data/left-p3_walk08.png"
-                                  , "data/left-p3_walk09.png"
-                                  , "data/left-p3_walk10.png"
-                                  , "data/left-p3_walk11.png"
-                                  ]
+  font            <- TTF.openFont "data/lacuna.ttf" 32 -- fixed size?
+  font2           <- TTF.openFont "data/lacuna.ttf" 8  -- fixed size?
+  backImages      <- mapM SDL.load [ "data/back.png" ]
+  hitImages       <- mapM SDL.load [ "data/hit0.png" ] -- , "data/hit2.png"]
+  walkLeftImages  <- mapM SDL.load [ "data/left-p3_walk01.png"
+                                   , "data/left-p3_walk02.png"
+                                   , "data/left-p3_walk03.png"
+                                   , "data/left-p3_walk04.png"
+                                   , "data/left-p3_walk05.png"
+                                   , "data/left-p3_walk06.png"
+                                   , "data/left-p3_walk07.png"
+                                   , "data/left-p3_walk08.png"
+                                   , "data/left-p3_walk09.png"
+                                   , "data/left-p3_walk10.png"
+                                   , "data/left-p3_walk11.png"
+                                   ]
 
   walkRightImages <- mapM SDL.load [ "data/p3_walk01.png"
                                    , "data/p3_walk02.png"
@@ -93,12 +84,12 @@ loadResources = do
                                    , "data/p3_walk11.png"
                                    ]
 
-  standingImages <- mapM SDL.load ["data/standing.png"]
+  standingImages  <- mapM SDL.load ["data/standing.png"]
 
-  ballImages100  <- mapM SDL.load ["data/ball1-200.png", "data/ball2-200.png"]
-  ballImages50   <- mapM SDL.load ["data/ball1-100.png", "data/ball2-100.png"]
-  ballImages25   <- mapM SDL.load ["data/ball1-50.png",  "data/ball2-50.png"]
-  ballImages12   <- mapM SDL.load ["data/ball1-25.png",  "data/ball2-25.png"]
+  ballImages100   <- mapM SDL.load ["data/ball1-200.png", "data/ball2-200.png"]
+  ballImages50    <- mapM SDL.load ["data/ball1-100.png", "data/ball2-100.png"]
+  ballImages25    <- mapM SDL.load ["data/ball1-50.png",  "data/ball2-50.png"]
+  ballImages12    <- mapM SDL.load ["data/ball1-25.png",  "data/ball2-25.png"]
   hblockImg       <- SDL.load "data/hblock100.png"
   vblockImg       <- SDL.load "data/vblock57.png"
 
@@ -158,27 +149,24 @@ getPlayerImage resRef state vulnerable = do
 
 render :: IORef Resources -> GameState -> IO()
 render resources shownState = do
-  -- Obtain surface
   screen <- getVideoSurface
 
+  -- Clear BG
+  -- fillRect screen Nothing (Pixel backgroundColor)
   let lvl = gameLevel (gameInfo shownState)
       safeBg l bgs = if l >= length bgs then last bgs else bgs !! l
   bg <- (safeBg lvl . backgrounds) <$> readIORef resources
   blitSurface bg Nothing screen Nothing
 
-  -- -- Clear BG
-  -- fillRect screen Nothing (Pixel backgroundColor)
-
-  -- Paint objects
   mapM_ (paintObject screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
   -- when debugCollisions $
   --   mapM_ (paintShape  screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
-  -- Paint HUD
+  -- HUD
   displayInfo screen resources (gameInfo shownState) (gameObjects shownState)
 
-  -- Paint messages/popups (eg. "Paused", "Level 0", etc.)
+  -- eg. "Paused", "Level 0", etc.
   displayMessage screen resources (gameInfo shownState)
 
   -- Double buffering
@@ -189,11 +177,9 @@ displayInfo :: Surface -> IORef Resources -> GameInfo -> Objects -> IO()
 displayInfo screen resRef over objs = do
   msg <- printSolid resRef ("Time: " ++ printf "%.2f" (gameTime over))
   renderAlignRight screen msg (10,50)
-  let p = findPlayer objs
-  case p of
-    Just p' -> do msg <- printSolid resRef ("Energy: " ++ show (playerEnergy p'))
-                  renderAlignRight screen msg (10,100)
-    Nothing -> return ()
+  awhen (findPlayer objs) $ \p -> do
+    msg <- printSolid resRef ("Energy: " ++ show (playerEnergy p))
+    renderAlignRight screen msg (10,100)
 
 paintObject :: Surface -> IORef Resources -> Double -> Object -> IO ()
 paintObject screen resRef time object = do
@@ -263,12 +249,11 @@ paintObject screen resRef time object = do
         -- SDL.blitSurface message Nothing screen (Just rect)
         -- return ()
 
-    ProjectileProps -> do
+    ProjectileProps -> void $ do
         let (x0,y0)   = (\(x,y) -> (x - 5, height - y)) $ objectPos object
             (dx, dy)  = (10, snd (objectPos object))
             (x0', y0', dx', dy') = (round x0, round y0, round dx, round dy)
         fillRect screen (Just (Rect x0' y0' dx' dy')) (Pixel bulletColor)
-        return ()
 
 paintShape :: Surface -> IORef Resources -> Double -> Object -> IO ()
 paintShape screen resources time object =
@@ -305,7 +290,6 @@ displayMessage screen resources info = case gameStatus info of
   _ -> return ()
 
 -- * Auxiliary drawing functions
-
 printSolid :: IORef Resources -> String -> IO Surface
 printSolid resources msg = do
   font    <- resFont <$> readIORef resources

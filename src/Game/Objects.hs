@@ -6,12 +6,12 @@ module Game.Objects where
 
 import Data.Maybe (listToMaybe)
 
-import Physics.TwoDimensions.Dimensions
-import Physics.TwoDimensions.PhysicalObjects  as P
+import           Physics.Shapes.BasicCirclesAABB
+import qualified Physics.Shapes.BasicCirclesAABBCollisions as C
+import           Physics.TwoDimensions.Dimensions
+import           Physics.TwoDimensions.PhysicalObjects     as P
 
 import           Game.Constants
-import qualified Game.Physics.Collisions      as C
-import           Game.Physics.Shapes
 
 type Collision  = P.Collision  (ObjectName, ObjectKind)
 type Collisions = P.Collisions (ObjectName, ObjectKind)
@@ -99,7 +99,7 @@ instance PhysicalObject Object (String, ObjectKind) Shape where
   physObjectId x      = (objectName x, objectKind x)
   physObjectUpdatePos = \o p -> o { objectPos = p }
   physObjectUpdateVel = \o v -> o { objectVel = v }
-  physDetectCollision = C.detectCollision
+  physDetectCollision = C.detectCollision (width, height)
 
 objShape :: Object -> Shape
 objShape obj = case objectProperties obj of

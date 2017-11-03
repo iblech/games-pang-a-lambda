@@ -91,8 +91,6 @@ executable pang-a-lambda-physics
                  Game.Objects
                  Game.ObjectSF
                  Game.Resources
-                 Game.Physics.Shapes
-                 Game.Physics.Collisions
 
   default-language:    Haskell2010
   if !flag(experiments)
@@ -154,8 +152,6 @@ executable pang-a-lambda-splitballs
                    Game.Objects
                    Game.ObjectSF
                    Game.Resources
-                   Game.Physics.Shapes
-                   Game.Physics.Collisions
 
                    -- General modules
     default-language:    Haskell2010
@@ -201,6 +197,4 @@ executable pang-a-lambda
                    Game.Objects.Blocks
                    Game.Objects.Balls
                    Game.ObjectSF
-                   Game.Physics.Collisions
-                   Game.Physics.Shapes
                    Game.Resources

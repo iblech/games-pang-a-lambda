@@ -36,15 +36,13 @@ module Game.Objects.Walls where
 -- External imports
 import Prelude hiding (id, (.))
 import FRP.Yampa
-
--- General-purpose internal imports
+import Physics.Shapes.BasicCirclesAABB
 import Physics.TwoDimensions.Dimensions
 
 -- Internal iports
 import Game.Constants
 import Game.Objects
 import Game.ObjectSF
-import Game.Physics.Shapes
 
 -- * Walls
 
