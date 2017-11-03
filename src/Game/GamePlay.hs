@@ -38,8 +38,7 @@ module Game.GamePlay
 
 -- External imports
 import FRP.Yampa
-import FRP.Yampa.Extra
-import FRP.Yampa.Switches
+import FRP.Extra.Yampa
 
 import Physics.CollisionEngine
 

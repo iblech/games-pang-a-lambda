@@ -4,13 +4,13 @@ module Physics.Collisions where
 import Control.Applicative
 import Control.Arrow
 import Data.Maybe
+import Data.Extra.Ord         ( minimumWith )
+import Data.Extra.VectorSpace ( rotateRespect, unrotateRespect )
+import Data.Tuple.Extra       ( swap )
 
 import FRP.Yampa.VectorSpace
 import Physics.TwoDimensions.Dimensions
 import Physics.Shapes
-import Data ( pointX, rotateRespect, unrotateRespect
-            , minimumWith, swap
-            )
 
 circleAABBOverlap :: Circle -> AABB -> Bool
 circleAABBOverlap c@(cp,cr) (rp, rs) =

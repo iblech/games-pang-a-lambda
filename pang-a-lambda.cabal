@@ -95,11 +95,6 @@ executable pang-a-lambda-physics
                  Game.Physics.Collisions
 
                  -- General modules
-                 Control.Extra.Monad
-                 Data.Extra.Num
-                 Data.Extra.VectorSpace
-                 Data.IdentityList
-                 Graphics.UI.Extra.SDL
                  Physics.Collisions
                  Physics.CollisionEngine
                  Physics.Shapes
@@ -169,10 +164,6 @@ executable pang-a-lambda-splitballs
                    Game.Physics.Collisions
 
                    -- General modules
-                   Control.Extra.Monad
-                   Data.Extra.Num
-                   Data.Extra.VectorSpace
-                   Graphics.UI.Extra.SDL
                    Physics.CollisionEngine
                    Physics.TwoDimensions.Dimensions
                    Physics.TwoDimensions.PhysicalObjects
@@ -188,6 +179,10 @@ executable pang-a-lambda
                    mtl -any,
                    transformers >=0.3 && <0.6,
                    Yampa >=0.9.6 && <0.11,
+                   sage-data-extra,
+                   sage-backends-sdl1-clock,
+                   sage-backends-sdl1-drawing,
+                   sage-yampa-extra,
 
                    SDL -any,
                    SDL-image -any,
@@ -219,14 +214,6 @@ executable pang-a-lambda
                    Game.Resources
 
                    -- General modules
-                   Control.Extra.Monad
-                   Data.Extra.IORef
-                   Data.Extra.List
-                   Data.Extra.Num
-                   Data.Extra.Ord
-                   Data.Extra.VectorSpace
-                   FRP.Yampa.Extra
-                   Graphics.UI.Extra.SDL
                    Physics.Collisions
                    Physics.CollisionEngine
                    Physics.Shapes

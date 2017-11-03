@@ -14,12 +14,12 @@ module Game.Input where
 
 -- External imports
 import Data.IORef
-import Graphics.UI.SDL as SDL
+import Graphics.UI.SDL       as SDL
+import Graphics.UI.Extra.SDL as SDL
 
 -- Internal imports
 import Control.Extra.Monad
-import Data.Extra.IORef
-import Graphics.UI.Extra.SDL
+import Data.IORef.Extra
 
 -- * Game controller
 
@@ -79,7 +79,7 @@ initializeInputDevices = do
 -- Controller info if necessary.
 senseInput :: ControllerRef -> IO Controller
 senseInput (ControllerRef (cref, sensor)) =
-  modifyIORefIO cref sensor
+  modifyIORefM cref sensor
 
 type ControllerDev = IO (Maybe (Controller -> IO Controller))
 

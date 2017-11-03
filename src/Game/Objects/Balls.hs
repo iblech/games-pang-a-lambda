@@ -20,8 +20,7 @@ module Game.Objects.Balls where
 import Prelude hiding ((.))
 import Control.Category ((.))
 import FRP.Yampa
-import FRP.Yampa.Extra
-import FRP.Yampa.Switches
+import FRP.Extra.Yampa
 
 -- General-purpose internal imports
 import Data.Extra.VectorSpace

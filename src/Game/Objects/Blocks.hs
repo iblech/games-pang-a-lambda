@@ -19,8 +19,7 @@ module Game.Objects.Blocks where
 import Prelude hiding (id)
 import Debug.Trace
 import FRP.Yampa
-import FRP.Yampa.Extra
-import FRP.Yampa.Switches
+import FRP.Extra.Yampa
 
 -- General-purpose internal imports
 import Physics.Oscillator

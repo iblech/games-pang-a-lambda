@@ -11,6 +11,7 @@ import           Graphics.UI.SDL.Image      as SDL
 import qualified Graphics.UI.SDL.Primitives as SDLP
 import qualified Graphics.UI.SDL.TTF        as TTF
 import           Graphics.UI.Extra.SDL      as SDL
+import           Graphics.UI.Extra.SDLPrimitives as SDL
 import           Text.Printf
 
 import Data.Extra.List
