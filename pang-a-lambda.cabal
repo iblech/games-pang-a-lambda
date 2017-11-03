@@ -220,6 +220,7 @@ executable pang-a-lambda
                    -- General modules
                    Control.Extra.Monad
                    Data.Extra.IORef
+                   Data.Extra.List
                    Data.Extra.Num
                    Data.Extra.Ord
                    Data.Extra.VectorSpace

@@ -3,6 +3,7 @@ module Graphics.UI.Extra.SDL where
 import Control.Monad
 import Data.IORef
 import Graphics.UI.SDL
+import qualified Graphics.UI.SDL.Primitives as SDLP
 
 -- * Types
 
@@ -63,3 +64,24 @@ renderAlignCenter screen surface = void $ do
       py      = (tHeight - h) `div` 2
       rect    = Rect px py w h
   blitSurface surface Nothing screen (Just rect)
+
+drawThickRectangle surface (Rect x1 y1 x2 y2) pixel 0 = return ()
+drawThickRectangle surface rect@(Rect x1 y1 x2 y2) pixel n = do
+  let n' = n-1
+  SDLP.rectangle surface (Rect (x1-n') (y1-n') (x2+n') (y2+n')) pixel
+  drawThickRectangle surface rect pixel n'
+
+drawThickCircle screen x y r pixel 0 = return ()
+drawThickCircle screen x y r pixel n = do
+  let n' = n-1
+  SDLP.circle screen x y (r+n') pixel
+  drawThickCircle screen x y r pixel n'
+
+drawThickLine screen x1 y1 x2 y2 pixel 0 = return ()
+drawThickLine screen x1 y1 x2 y2 pixel n = do
+  let n' = n-1
+  SDLP.line screen (x1) (y1-n') (x2) (y2-n') pixel
+  SDLP.line screen (x1) (y1+n') (x2) (y2+n') pixel
+  SDLP.line screen (x1-n') (y1) (x2-n') (y2) pixel
+  SDLP.line screen (x1+n') (y1) (x2+n') (y2) pixel
+  drawThickLine screen x1 y1 x2 y2 pixel n'

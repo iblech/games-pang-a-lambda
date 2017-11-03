@@ -13,6 +13,7 @@ import qualified Graphics.UI.SDL.TTF        as TTF
 import           Graphics.UI.Extra.SDL      as SDL
 import           Text.Printf
 
+import Data.Extra.List
 import Game.Constants
 import Game.GameState
 import Game.Objects
@@ -316,33 +317,3 @@ printAlignCenter screen resources msg = void $ do
   font <- resFont <$> readIORef resources
   message <- TTF.renderTextSolid font msg fontColor
   renderAlignCenter screen message
-
--- * Auxiliary SDL functions
-
-drawThickRectangle surface (Rect x1 y1 x2 y2) pixel 0 = return ()
-drawThickRectangle surface rect@(Rect x1 y1 x2 y2) pixel n = do
-  let n' = n-1
-  SDLP.rectangle surface (Rect (x1-n') (y1-n') (x2+n') (y2+n')) pixel
-  drawThickRectangle surface rect pixel n'
-
-drawThickCircle screen x y r pixel 0 = return ()
-drawThickCircle screen x y r pixel n = do
-  let n' = n-1
-  SDLP.circle screen x y (r+n') pixel
-  drawThickCircle screen x y r pixel n'
-
-drawThickLine screen x1 y1 x2 y2 pixel 0 = return ()
-drawThickLine screen x1 y1 x2 y2 pixel n = do
-  let n' = n-1
-  SDLP.line screen (x1) (y1-n') (x2) (y2-n') pixel
-  SDLP.line screen (x1) (y1+n') (x2) (y2+n') pixel
-  SDLP.line screen (x1-n') (y1) (x2-n') (y2) pixel
-  SDLP.line screen (x1+n') (y1) (x2+n') (y2) pixel
-  drawThickLine screen x1 y1 x2 y2 pixel n'
-
--- * Auxiliary List functions
-
-updateL :: [a] -> Int -> a -> [a]
-updateL []     _ x  = [x]
-updateL (_:as) 0 a  = a : as
-updateL (a:as) n a' = a : updateL as (n-1) a'
