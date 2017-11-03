@@ -99,8 +99,8 @@ level n =   levelLoading n >? after 2 () -- show loading screen for 2 seconds
   where
     -- | Detect when there are no more enemies in the scene.
     outOfEnemies :: GameState -> (Event GameState)
-    outOfEnemies gs | none isBall (gameObjects gs) = Event gs
-                    | otherwise                    = NoEvent
+    outOfEnemies gs | any isBall (gameObjects gs) = NoEvent
+                    | otherwise                   = Event gs
 
 -- | Produce a constant game state of loading a particular level.
 levelLoading :: Int -> SF Controller GameState
@@ -491,9 +491,3 @@ objWalls _ = [ inertSF objSideRight
 -- | Safe function to get the energy of the player from the game state.
 playerEnergyObjs :: Objects -> Int
 playerEnergyObjs objs = maybe 0 playerEnergy (findPlayer objs)
-
--- ** Other aux
-
--- | 'True' if property does not hold for any element, 'False' otherwise.
-none :: Foldable t => (a -> Bool) -> t a -> Bool
-none p = not . any p
