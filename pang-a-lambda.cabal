@@ -185,7 +185,6 @@ executable pang-a-lambda
     other-modules:
                    -- Game specific
                    Game.Constants
-                   Game.Debug
                    Game.Display
                    Game.GamePlay
                    Game.GameState
