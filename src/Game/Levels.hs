@@ -296,8 +296,8 @@ objBlocks 27 = [ oscillatingBlock "block11" (gameWidth / 2 - 350, 287)      (57,
                , oscillatingBlock "block19" (gameWidth / 2 + 150, 230)      (100, 57) 0 0 100 10
                , oscillatingBlock "block20" (gameWidth / 2 + 250, 230)      (100, 57) 0 0 100 10
                ]
-objBlocks 28 = [ staticBlock "block11" (0,   450-57*0) (100, 50)
-               , staticBlock "block12" (100, 450-57*1) (100, 50)
+objBlocks 28 = [ staticBlock "block11" (0,   450-57*0) (100, 57)
+               , staticBlock "block12" (100, 450-57*1) (100, 57)
                , staticBlock "block14" (200, 450-57*2) (100, 57)
                , staticBlock "block15" (300, 450-57*3) (100, 57)
                , staticBlock "block16" (400, 450-57*4) (100, 57)
