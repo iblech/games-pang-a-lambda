@@ -21,6 +21,7 @@ import Prelude hiding ((.))
 import Control.Category ((.))
 import FRP.Yampa
 import FRP.Extra.Yampa
+import FRP.Extra.Yampa.Games
 
 -- General-purpose internal imports
 import Data.Extra.VectorSpace

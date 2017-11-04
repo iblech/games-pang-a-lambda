@@ -170,6 +170,7 @@ executable pang-a-lambda
                    sage-backends-sdl1-clock,
                    sage-backends-sdl1-drawing,
                    sage-yampa-extra,
+                   sage-yampa-games,
                    sage-physics-2d-rectangles,
 
                    SDL -any,

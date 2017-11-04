@@ -25,6 +25,7 @@ module Game.Levels where
 
 -- External imports
 import FRP.Extra.Yampa
+import FRP.Extra.Yampa.Games
 
 -- Internal iports
 import Game.Constants
