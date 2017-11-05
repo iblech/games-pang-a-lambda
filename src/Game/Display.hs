@@ -111,14 +111,6 @@ paintObject screen resRef time object = do
         let (x,y) = both round (px, gameHeight - py - playerHeight)
 
         -- Image
-        let playerColor = case (state, vulnerable) of
-                            (PlayerShooting, _)     -> playerRightColor
-                            (PlayerRight,    True)  -> playerRightColor
-                            (PlayerLeft ,    True)  -> playerLeftColor
-                            (PlayerStand,    True)  -> playerStandColor
-                            (PlayerRight,    False) -> playerBlinkRightColor
-                            (PlayerLeft ,    False) -> playerBlinkLeftColor
-                            (PlayerStand,    False) -> playerBlinkStandColor
         playerImage <- getPlayerImage resRef state vulnerable
 
         blitSurface playerImage Nothing screen (Just (Rect x y (-1) (-1)))
