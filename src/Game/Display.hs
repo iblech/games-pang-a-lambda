@@ -74,11 +74,14 @@ paintInfo screen resRef over objs = do
 
 -- | Render Level message
 paintMessage :: Surface -> ResourceManager -> GameInfo -> IO()
-paintMessage screen resources info = case gameStatus info of
-  GameLoading -> do
-    msg <- printSolid resources ("Level " ++ show (gameLevel info))
-    renderAlignCenter screen msg
-  _ -> return ()
+paintMessage screen resources info =
+    awhen (msg info) $ \msg' -> do
+      message <- printSolid resources msg'
+      renderAlignCenter screen message
+  where
+    msg info = case gameStatus info of
+                 GameLoading -> Just ("Level " ++ show (gameLevel info))
+                 _           -> Nothing
 
 paintObject :: Surface -> ResourceManager -> Double -> Object -> IO ()
 paintObject screen resRef time object = do
