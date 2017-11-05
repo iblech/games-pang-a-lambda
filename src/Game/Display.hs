@@ -136,6 +136,8 @@ printSolid resources msg = do
   message <- TTF.renderTextSolid font msg fontColor
   return message
 
+-- * Paint debugging physics information
+
 -- TODO: Move to sage, generalise for physical objects, pass
 -- game screen size, etc, as arguments.
 paintShape :: Surface -> ResourceManager -> Double -> Object -> IO ()
