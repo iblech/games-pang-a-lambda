@@ -38,10 +38,32 @@ initGraphs _res = void $ do
   -- Hide mouse
   SDL.showCursor True
 
--- * Rendering
+-- * Rendering and Sound
 
+-- | Loads new resources, renders the game state using SDL, and adjusts music.
 render :: ResourceManager -> GameState -> IO()
-render resources shownState = do
+render resourceManager shownState = do
+  -- resources <- loadNewResources resourceManager shownState
+  audio   resourceManager shownState
+  display resourceManager shownState
+
+-- ** Audio
+
+audio :: ResourceManager -> GameState -> IO()
+audio resources shownState = do
+  -- -- Start bg music if necessary
+  -- playing <- musicPlaying
+  -- unless playing $ awhen (bgMusic resources) playMusic
+
+  -- Play object hits
+  mapM_ (audioObject resources) $ gameObjects shownState
+
+audioObject :: ResourceManager -> Object -> IO ()
+audioObject resources object = return ()
+
+-- ** Painting
+display :: ResourceManager -> GameState -> IO()
+display resources shownState = do
   screen <- getVideoSurface
 
   -- Clear BG
@@ -63,7 +85,6 @@ render resources shownState = do
   -- Double buffering
   SDL.flip screen
 
--- ** Painting functions
 paintInfo :: Surface -> ResourceManager -> GameInfo -> Objects -> IO()
 paintInfo screen resRef over objs = do
   msg <- printSolid resRef ("Time: " ++ printf "%.2f" (gameTime over))
@@ -72,7 +93,7 @@ paintInfo screen resRef over objs = do
     msg <- printSolid resRef ("Energy: " ++ show (playerEnergy p))
     renderAlignRight screen msg (10,100)
 
--- | Render Level message
+-- Render Level message
 paintMessage :: Surface -> ResourceManager -> GameInfo -> IO()
 paintMessage screen resources info =
     awhen (msg info) $ \msg' -> do
