@@ -5,15 +5,15 @@ module Game.Display
   )
   where
 
-import           Control.Monad
-import           Control.Monad.IfElse
-import           Data.Tuple.Extra
-import           Graphics.UI.SDL                 as SDL
-import qualified Graphics.UI.SDL.TTF             as TTF
-import           Graphics.UI.Extra.SDLDrawing    as SDL
-import           Graphics.UI.Extra.SDLPrimitives as SDL
-import           Text.Printf
-import           Physics.Shapes.BasicCirclesAABB
+import Control.Monad
+import Control.Monad.IfElse
+import Data.Tuple.Extra
+import Graphics.UI.SDL                 as SDL
+import Graphics.UI.SDL.TTF             as TTF
+import Graphics.UI.Extra.SDLDrawing    as SDL
+import Graphics.UI.Extra.SDLPrimitives as SDL
+import Text.Printf
+import Physics.Shapes.BasicCirclesAABB
 
 import Game.Constants
 import Game.GameState
