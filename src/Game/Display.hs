@@ -55,22 +55,30 @@ render resources shownState = do
   --   mapM_ (paintShape  screen resources (gameTime (gameInfo shownState))) (gameObjects shownState)
 
   -- HUD
-  displayInfo screen resources (gameInfo shownState) (gameObjects shownState)
+  paintInfo screen resources (gameInfo shownState) (gameObjects shownState)
 
   -- eg. "Paused", "Level 0", etc.
-  displayMessage screen resources (gameInfo shownState)
+  paintMessage screen resources (gameInfo shownState)
 
   -- Double buffering
   SDL.flip screen
 
 -- ** Painting functions
-displayInfo :: Surface -> ResourceManager -> GameInfo -> Objects -> IO()
-displayInfo screen resRef over objs = do
+paintInfo :: Surface -> ResourceManager -> GameInfo -> Objects -> IO()
+paintInfo screen resRef over objs = do
   msg <- printSolid resRef ("Time: " ++ printf "%.2f" (gameTime over))
   renderAlignRight screen msg (10,50)
   awhen (findPlayer objs) $ \p -> do
     msg <- printSolid resRef ("Energy: " ++ show (playerEnergy p))
     renderAlignRight screen msg (10,100)
+
+-- | Render Level message
+paintMessage :: Surface -> ResourceManager -> GameInfo -> IO()
+paintMessage screen resources info = case gameStatus info of
+  GameLoading -> do
+    msg <- printSolid resources ("Level " ++ show (gameLevel info))
+    renderAlignCenter screen msg
+  _ -> return ()
 
 paintObject :: Surface -> ResourceManager -> Double -> Object -> IO ()
 paintObject screen resRef time object = do
@@ -120,14 +128,6 @@ paintObject screen resRef time object = do
 
         -- Image
         fillRect screen (Just (Rect x0 y0 dx dy)) (Pixel bulletColor)
-
--- | Render Level message
-displayMessage :: Surface -> ResourceManager -> GameInfo -> IO()
-displayMessage screen resources info = case gameStatus info of
-  GameLoading -> do
-    msg <- printSolid resources ("Level " ++ show (gameLevel info))
-    renderAlignCenter screen msg
-  _ -> return ()
 
 -- * Auxiliary drawing functions
 printSolid :: ResourceManager -> String -> IO Surface
