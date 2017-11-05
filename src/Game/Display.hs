@@ -77,40 +77,40 @@ displayInfo screen resRef over objs = do
 
 paintObject :: Surface -> ResourceManager -> Double -> Object -> IO ()
 paintObject screen resRef time object = do
-
+  let (px,py)  = objectPos object
   case objectProperties object of
 
     SideProps {} -> return ()
 
     BallProps ballSize -> void $ do
-      let (px,py)  = (\(u,v) -> (u, gameHeight - v)) (objectPos object)
-          (x,y)    = both round (px,py)
-          (vx,vy)  = objectVel object
-          (x',y')  = both round ((px,py) ^+^ (0.1 *^ (vx, -vy)))
 
+      -- Position
+      let (x, y) = both round (px - ballSize, gameHeight - py - ballSize)
+
+      -- Image
       ballImage <- getBallImage resRef (round ballSize)
 
-      blitSurface ballImage Nothing screen (Just (Rect (fromIntegral x - round ballSize) (fromIntegral y - round ballSize) (-1) (-1)))
+      blitSurface ballImage Nothing screen (Just (Rect x y (-1) (-1)))
 
     BlockProps sz@(w', h') -> void $ do
-      let (px,py)    = objectPos object
-          (x,y)      = both round (px, gameHeight - py - h')
 
+      -- Position
+      let (x,y) = both round (px, gameHeight - py - h')
+
+      -- Image
       let blockImage = if w' > h' then getHBlockImage else getVBlockImage
       blockImg <- blockImage resRef
 
       blitSurface blockImg Nothing screen (Just (Rect x y (-1) (-1)))
 
     PlayerProps state _ vulnerable energy -> do
-      let blinkOn  = vulnerable || (even (round (time * 10)))
+      let blinkOn = vulnerable || even (round (time * 10))
       when blinkOn $ void $ do
 
-        let (px,py)  = (\(u,v) -> (u, gameHeight - v - playerHeight)) (objectPos object)
-            (x,y)    = both round (px,py)
-            (vx,vy)  = objectVel object
-            (x',y')  = both round ((px,py) ^+^ (0.1 *^ (vx, -vy)))
-            (w,h)    = both round (playerWidth, playerHeight)
+        -- Position
+        let (x,y) = both round (px, gameHeight - py - playerHeight)
 
+        -- Image
         let playerColor = case (state, vulnerable) of
                             (PlayerShooting, _)     -> playerRightColor
                             (PlayerRight,    True)  -> playerRightColor
@@ -125,8 +125,11 @@ paintObject screen resRef time object = do
 
     ProjectileProps -> void $ do
 
-        let (x0, y0)  = both round $ (\(x,y) -> (x - 5, height - y)) $ objectPos object
-            (dx, dy)  = both round (10, snd (objectPos object))
+        -- Position
+        let (x0, y0) = both round (px - 5, height - py)
+            (dx, dy) = both round (10, py)
+
+        -- Image
         fillRect screen (Just (Rect x0 y0 dx dy)) (Pixel bulletColor)
 
 paintShape :: Surface -> ResourceManager -> Double -> Object -> IO ()
