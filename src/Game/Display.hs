@@ -8,7 +8,6 @@ module Game.Display
 import           Control.Monad
 import           Control.Monad.IfElse
 import           Data.Tuple.Extra
-import           FRP.Yampa.VectorSpace
 import           Graphics.UI.SDL                 as SDL
 import qualified Graphics.UI.SDL.TTF             as TTF
 import           Graphics.UI.Extra.SDLDrawing    as SDL
@@ -19,7 +18,6 @@ import           Physics.Shapes.BasicCirclesAABB
 import Game.Constants
 import Game.GameState
 import Game.Objects
-import Game.Resources
 import Game.ResourceManager
 
 -- * Display handling
@@ -47,7 +45,6 @@ render resources shownState = do
   screen <- getVideoSurface
 
   -- Clear BG
-  -- fillRect screen Nothing (Pixel backgroundColor)
   let lvl = gameLevel (gameInfo shownState)
   bg <- getBackgroundImage resources lvl
   blitSurface bg Nothing screen Nothing
@@ -124,30 +121,6 @@ paintObject screen resRef time object = do
         -- Image
         fillRect screen (Just (Rect x0 y0 dx dy)) (Pixel bulletColor)
 
-paintShape :: Surface -> ResourceManager -> Double -> Object -> IO ()
-paintShape screen resources time object =
-  paintShape' screen resources time (objShape object)
-
-paintShape' :: Surface -> ResourceManager -> Double -> Shape -> IO ()
-paintShape' screen resources time (Rectangle (px, py) (w,h)) = void $
-    drawThickRectangle screen (Rect x1 y1 x2 y2) (Pixel collisionDebugColor) collisionDebugThickness
-  where
-    (x1, y1) = both round (px, gameHeight - py - h)
-    (x2, y2) = both round (px + w, gameHeight - py)
-paintShape' screen resources time (Circle (px, py) rd) = void $ do
-    drawThickCircle screen x y r (Pixel collisionDebugColor) collisionDebugThickness
-  where
-    (x, y) = both round (px, gameHeight - py)
-    r      = round rd
-paintShape' screen resources time (SemiPlane (px, py) s) =
-  case s of
-    LeftSide   -> drawThickLine screen 0 0 0 h (Pixel collisionDebugColor) collisionDebugThickness
-    RightSide  -> drawThickLine screen w 0 w h (Pixel collisionDebugColor) collisionDebugThickness
-    TopSide    -> drawThickLine screen 0 0 w 0 (Pixel collisionDebugColor) collisionDebugThickness
-    BottomSide -> drawThickLine screen 0 h w h (Pixel collisionDebugColor) collisionDebugThickness
-  where
-    (w,h) = both round (width, height)
-
 -- | Render Level message
 displayMessage :: Surface -> ResourceManager -> GameInfo -> IO()
 displayMessage screen resources info = case gameStatus info of
@@ -162,3 +135,29 @@ printSolid resources msg = do
   font    <- getResFont resources
   message <- TTF.renderTextSolid font msg fontColor
   return message
+
+-- TODO: Move to sage, generalise for physical objects, pass
+-- game screen size, etc, as arguments.
+paintShape :: Surface -> ResourceManager -> Double -> Object -> IO ()
+paintShape screen resources time object =
+  paintShape' screen resources (objShape object)
+
+paintShape' :: Surface -> ResourceManager -> Shape -> IO ()
+paintShape' screen resources (Rectangle (px, py) (w,h)) = void $
+    drawThickRectangle screen (Rect x1 y1 x2 y2) (Pixel collisionDebugColor) collisionDebugThickness
+  where
+    (x1, y1) = both round (px, gameHeight - py - h)
+    (x2, y2) = both round (px + w, gameHeight - py)
+paintShape' screen resources (Circle (px, py) rd) = void $ do
+    drawThickCircle screen x y r (Pixel collisionDebugColor) collisionDebugThickness
+  where
+    (x, y) = both round (px, gameHeight - py)
+    r      = round rd
+paintShape' screen resources (SemiPlane _pos s) =
+  case s of
+    LeftSide   -> drawThickLine screen 0 0 0 h (Pixel collisionDebugColor) collisionDebugThickness
+    RightSide  -> drawThickLine screen w 0 w h (Pixel collisionDebugColor) collisionDebugThickness
+    TopSide    -> drawThickLine screen 0 0 w 0 (Pixel collisionDebugColor) collisionDebugThickness
+    BottomSide -> drawThickLine screen 0 h w h (Pixel collisionDebugColor) collisionDebugThickness
+  where
+    (w,h) = both round (width, height)
