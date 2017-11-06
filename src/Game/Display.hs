@@ -8,10 +8,10 @@ module Game.Display
 import Control.Monad
 import Control.Monad.IfElse
 import Data.Tuple.Extra
-import Graphics.UI.SDL                 as SDL
-import Graphics.UI.SDL.TTF             as TTF
-import Graphics.UI.Extra.SDLDrawing    as SDL
-import Graphics.UI.Extra.SDLPrimitives as SDL
+import Graphics.UI.SDL                  as SDL
+import Graphics.UI.SDL.Align            as SDL
+import Graphics.UI.SDL.TTF              as TTF
+import Graphics.UI.SDL.Primitives.Extra as SDL
 import Text.Printf
 import Physics.Shapes.BasicCirclesAABB
 

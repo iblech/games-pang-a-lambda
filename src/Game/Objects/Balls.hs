@@ -20,11 +20,11 @@ module Game.Objects.Balls where
 import Prelude hiding ((.))
 import Control.Category ((.))
 import FRP.Yampa
-import FRP.Extra.Yampa
-import FRP.Extra.Yampa.Games
+import FRP.Yampa.Extra
+import FRP.Yampa.Extra.Games
 
 -- General-purpose internal imports
-import Data.Extra.VectorSpace
+import Data.VectorSpace.Extra
 import Physics.CollisionEngine          
 import Physics.TwoDimensions.Dimensions
 import Physics.TwoDimensions.PhysicalObjects

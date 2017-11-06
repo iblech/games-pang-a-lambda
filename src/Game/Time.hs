@@ -5,7 +5,7 @@ module Game.Time where
 
 -- External imports
 import FRP.Yampa
-import FRP.Extra.Yampa
+import FRP.Yampa.Extra
 
 -- Internal iports
 import Game.Input

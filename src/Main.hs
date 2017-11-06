@@ -1,11 +1,11 @@
 import Data.IORef
 import FRP.Yampa as Yampa
+import Graphics.UI.SDL.Clock
 import System.Mem
 
 import Game.Display
 import Game.GamePlay
 import Game.Input
-import Graphics.UI.Extra.SDL
 
 main :: IO ()
 main = do

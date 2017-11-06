@@ -1,25 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module Game.ResourceManager where
 
-import           Control.Arrow                   ((***))
-import           Control.Monad
-import           Control.Monad.IfElse
 import           Data.IORef
-import           Data.Maybe (fromJust)
-import           FRP.Yampa.VectorSpace
-import           Graphics.UI.SDL                 as SDL
-import           Graphics.UI.SDL.Image           as SDL
-import qualified Graphics.UI.SDL.Primitives      as SDLP
-import qualified Graphics.UI.SDL.TTF             as TTF
-import           Graphics.UI.Extra.SDL           as SDL
-import           Graphics.UI.Extra.SDLDrawing    as SDL
-import           Graphics.UI.Extra.SDLPrimitives as SDL
-import           Text.Printf
-import           Physics.Shapes.BasicCirclesAABB
+import           Data.List.Extra
+import           Data.Maybe            (fromJust)
+import           Graphics.UI.SDL       as SDL
+import           Graphics.UI.SDL.Image as SDL
+import qualified Graphics.UI.SDL.TTF   as TTF
 
-import Data.Extra.List
-import Game.Constants
-import Game.GameState
 import Game.Objects
 import Game.Resources
 

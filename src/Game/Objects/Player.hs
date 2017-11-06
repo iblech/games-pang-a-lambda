@@ -21,10 +21,10 @@ import Prelude hiding ((.))
 import Control.Category ((.))
 import Data.Maybe
 import FRP.Yampa
-import FRP.Extra.Yampa
+import FRP.Yampa.Extra
 
 -- General-purpose internal imports
-import Data.Extra.Ord
+import Data.Ord.Extra
 
 import Physics.CollisionEngine
 import Physics.TwoDimensions.Dimensions

@@ -15,10 +15,10 @@ module Game.Input where
 -- External imports
 import Data.IORef
 import Graphics.UI.SDL       as SDL
-import Graphics.UI.Extra.SDL as SDL
+import Graphics.UI.SDL.Clock as SDL
 
 -- Internal imports
-import Control.Extra.Monad
+import Control.Monad.Extra
 import Data.IORef.Extra
 
 -- * Game controller
