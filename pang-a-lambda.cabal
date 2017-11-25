@@ -7,7 +7,9 @@ synopsis:            A super-pang clone
 description:         An FRP implementation of superpang
                      To install this game you currently need the fork 
                      of Yampa available at:
-                     https://github.com/keera-studios/pang-a-lambda
+                     .
+                     <https://github.com/keera-studios/pang-a-lambda>
+                     .
                      We are looking into making the game installable 
                      directly from hackage.
 license:             GPL-3
