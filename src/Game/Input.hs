@@ -15,7 +15,7 @@ module Game.Input where
 -- External imports
 import Data.IORef
 import Graphics.UI.SDL       as SDL
-import Graphics.UI.SDL.Clock as SDL
+import Game.Clock            as SDL
 
 -- Internal imports
 import Control.Monad.Extra

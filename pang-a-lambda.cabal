@@ -166,12 +166,14 @@ executable pang-a-lambda
                    mtl -any,
                    transformers >=0.3 && <0.6,
                    Yampa >=0.9.6 && <0.11,
+
                    sage-data-extra,
-                   sage-backends-sdl1-clock,
-                   sage-backends-sdl1-drawing,
+                   sage-clock-sdl1,
                    sage-yampa-extra,
                    sage-yampa-games,
-                   sage-physics-2d-rectangles,
+                   sage-physics-2d,
+
+                   sage-sdl1-extra,
 
                    SDL -any,
                    SDL-image -any,

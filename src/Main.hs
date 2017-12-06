@@ -1,7 +1,7 @@
 import Data.IORef
 import FRP.Yampa as Yampa
-import Graphics.UI.SDL.Clock
 import System.Mem
+import Game.Clock
 
 import Game.Display
 import Game.GamePlay
