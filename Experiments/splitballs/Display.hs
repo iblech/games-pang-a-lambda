@@ -105,13 +105,4 @@ printAlignRight :: Surface -> Resources -> String -> (Int, Int) -> IO ()
 printAlignRight screen resources msg (x,y) = void $ do
   let font = resFont resources
   message <- TTF.renderTextSolid font msg fontColor
-  renderAlignRight screen message (x,y)
-
--- * SDL Extensions
-renderAlignRight :: Surface -> Surface -> (Int, Int) -> IO ()
-renderAlignRight screen surface (x,y) = void $ do
-  let rightMargin = SDL.surfaceGetWidth screen
-      w           = SDL.surfaceGetWidth  surface
-      h           = SDL.surfaceGetHeight surface
-      rect        = SDL.Rect (rightMargin - x - w) y w h
-  SDL.blitSurface surface Nothing screen (Just rect)
+  paintAlignedRight screen message (x,y)

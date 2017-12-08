@@ -9,11 +9,11 @@ import Control.Monad
 import Control.Monad.IfElse
 import Data.Tuple.Extra
 import Graphics.UI.SDL                  as SDL
-import Graphics.UI.SDL.Align            as SDL
+import Graphics.UI.SDL.Extra            as SDL
 import Graphics.UI.SDL.TTF              as TTF
-import Graphics.UI.SDL.Primitives.Extra as SDL
 import Text.Printf
-import Physics.Shapes.BasicCirclesAABB
+import Physics.TwoDimensions.Shapes.BasicCirclesAABB
+import Physics.TwoDimensions.Side
 
 import Game.Constants
 import Game.GameState
@@ -88,17 +88,17 @@ display resources shownState = do
 paintInfo :: Surface -> ResourceManager -> GameInfo -> Objects -> IO()
 paintInfo screen resRef over objs = do
   msg <- printSolid resRef ("Time: " ++ printf "%.2f" (gameTime over))
-  renderAlignRight screen msg (10,50)
+  paintAlignedRight screen msg (10,50)
   awhen (findPlayer objs) $ \p -> do
     msg <- printSolid resRef ("Energy: " ++ show (playerEnergy p))
-    renderAlignRight screen msg (10,100)
+    paintAlignedRight screen msg (10,100)
 
 -- Render Level message
 paintMessage :: Surface -> ResourceManager -> GameInfo -> IO()
 paintMessage screen resources info =
     awhen (msg info) $ \msg' -> do
       message <- printSolid resources msg'
-      renderAlignCenter screen message
+      paintAlignedCenter screen message
   where
     msg info = case gameStatus info of
                  GameLoading -> Just ("Level " ++ show (gameLevel info))
