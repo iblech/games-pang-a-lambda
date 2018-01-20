@@ -22,7 +22,7 @@ The game is available on [hackage](http://hackage.haskell.org/package/pang-a-lam
 
 ## Documentation
 
-To try and make things as clear as possible, the code includes a much haddock
+To try and make things as clear as possible, the code includes as much haddock
 documentation and comments as we could reasonably fit. You can compile
 those with:
 
